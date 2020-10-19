@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
            "<span style=' font-size:8pt; font-weight:600;'>Deepin en Español </span>"
            "<a href='https://deepinenespañol.org'>https://deepinenespañol.org</a><br/>"
            "<span style=' font-size:8pt; font-weight:600;'>Deepin Latin Code - developers</span>");
-    dialog.setVersion(DApplication::buildVersion("Version 0.1"));
+    dialog.setVersion(DApplication::buildVersion("Version 1.0"));
     dialog.setWebsiteName("deepinenespañol.org");
     dialog.setWebsiteLink("https://deepinenespañol.org");
 
