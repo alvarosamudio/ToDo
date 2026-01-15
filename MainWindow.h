@@ -26,8 +26,15 @@ public slots:
   void removeTask(Task *task);
   void taskStatusChanged(Task *task);
 
+protected:
+  void closeEvent(QCloseEvent *event) override;
+
 private:
+  void saveTasks();
+  void loadTasks();
+
   Ui::MainWindow *ui;
   std::vector<Task *> m_tasks;
 };
+
 #endif // MAINWINDOW_H

@@ -18,6 +18,7 @@ public:
   void setName(const QString &name);
   QString name() const;
   bool isCompleted() const;
+  void setCompleted(bool completed);
 
 public slots:
   void rename();

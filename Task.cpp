@@ -21,6 +21,15 @@ QString Task::name() const { return ui->checkBox->text(); }
 
 bool Task::isCompleted() const { return ui->checkBox->isChecked(); }
 
+void Task::setCompleted(bool completed) {
+  const auto wasBlocked = ui->checkBox->blockSignals(true);
+  ui->checkBox->setChecked(completed);
+  ui->checkBox->blockSignals(wasBlocked);
+  auto font(ui->checkBox->font());
+  font.setStrikeOut(completed);
+  ui->checkBox->setFont(font);
+}
+
 void Task::rename() {
   bool isOk{};
   auto value = QInputDialog::getText(this, tr("Editar tarea"), tr("Nombre de tarea"),
