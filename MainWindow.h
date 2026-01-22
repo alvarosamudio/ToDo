@@ -20,11 +20,14 @@ public:
   ~MainWindow();
 
   void updateStatus();
+  void syncTasksFromList();
 
 public slots:
   void addTask();
   void removeTask(Task *task);
   void taskStatusChanged(Task *task);
+  void filterTasks(const QString &text);
+  void clearCompleted();
 
 protected:
   void closeEvent(QCloseEvent *event) override;
@@ -32,6 +35,7 @@ protected:
 private:
   void saveTasks();
   void loadTasks();
+  void showEmptyState();
 
   Ui::MainWindow *ui;
   std::vector<Task *> m_tasks;

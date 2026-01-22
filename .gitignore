@@ -1,0 +1,14 @@
+# Build
+Makefile
+.qmake.stash
+*.o
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
+moc_predefs.h
+
+# Binary
+DeepinesToDo
+
+# Temp
+empty.cpp

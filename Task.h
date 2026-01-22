@@ -23,10 +23,15 @@ public:
 public slots:
   void rename();
   void checked(bool isChecked);
+  void finishEdit();
 
 signals:
   void removed(Task *task);
   void statusChanged(Task *task);
+
+protected:
+  void mouseDoubleClickEvent(QMouseEvent *event) override;
+  bool eventFilter(QObject *obj, QEvent *event) override;
 
 private:
   Ui::Task *ui;
