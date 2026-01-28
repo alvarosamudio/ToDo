@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>573</width>
+    <width>600</width>
     <height>450</height>
    </rect>
   </property>
@@ -25,6 +25,28 @@
        </widget>
       </item>
       <item>
+       <widget class="QProgressBar" name="progressBar">
+        <property name="minimum">
+         <number>0</number>
+        </property>
+        <property name="maximum">
+         <number>100</number>
+        </property>
+        <property name="value">
+         <number>0</number>
+        </property>
+        <property name="textVisible">
+         <bool>false</bool>
+        </property>
+        <property name="fixedWidth">
+         <number>80</number>
+        </property>
+        <property name="fixedHeight">
+         <number>14</number>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QLineEdit" name="searchEdit">
         <property name="placeholderText">
          <string>Buscar tareas...</string>
@@ -39,12 +61,18 @@
         <property name="text">
          <string>Limpiar</string>
         </property>
+        <property name="toolTip">
+         <string>Eliminar todas las tareas finalizadas</string>
+        </property>
        </widget>
       </item>
       <item>
        <widget class="QPushButton" name="addTaskButton">
         <property name="text">
          <string>Añadir tarea</string>
+        </property>
+        <property name="toolTip">
+         <string>Añadir nueva tarea (Ctrl+N)</string>
         </property>
        </widget>
       </item>

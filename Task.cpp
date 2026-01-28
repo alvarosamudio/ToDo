@@ -12,7 +12,7 @@ Task::Task(const QString &name, QWidget *parent)
           [this]() { emit removed(this); });
   connect(ui->checkBox, &QCheckBox::toggled, this, &Task::checked);
   connect(ui->editBox, &QLineEdit::returnPressed, this, &Task::finishEdit);
-  connect(ui->editBox, &QLineEdit::editingFinished, this, &Task::finishEdit);
+
   ui->editBox->installEventFilter(this);
 }
 
@@ -66,7 +66,7 @@ void Task::mouseDoubleClickEvent(QMouseEvent *event) {
 
 bool Task::eventFilter(QObject *obj, QEvent *event) {
   if (obj == ui->editBox && event->type() == QEvent::KeyPress) {
-    auto keyEvent = static_cast<QKeyEvent *>(event);
+    const auto keyEvent = static_cast<QKeyEvent *>(event);
     if (keyEvent->key() == Qt::Key_Escape) {
       ui->stackedWidget->setCurrentIndex(0);
       return true;

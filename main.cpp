@@ -30,6 +30,7 @@ int main(int argc, char *argv[]) {
   dialog.setCompanyLogo(QPixmap("://Logo-Racoon.png"));
   dialog.setWebsiteName("deepinenespanol.org");
   dialog.setWebsiteLink("https://deepinenespanol.org");
+
   a.setAboutDialog(&dialog);
 
   MainWindow w;

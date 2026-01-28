@@ -16,7 +16,7 @@ class MainWindow : public DMainWindow {
   Q_OBJECT
 
 public:
-  MainWindow(QWidget *parent = nullptr);
+  explicit MainWindow(QWidget *parent = nullptr);
   ~MainWindow();
 
   void updateStatus();
@@ -33,9 +33,12 @@ protected:
   void closeEvent(QCloseEvent *event) override;
 
 private:
-  void saveTasks();
+  void saveTasks() const;
   void loadTasks();
   void showEmptyState();
+  void setupMenu();
+  void exportTasks() const;
+  void importTasks();
 
   Ui::MainWindow *ui;
   std::vector<Task *> m_tasks;
