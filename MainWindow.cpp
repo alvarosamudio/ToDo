@@ -13,6 +13,7 @@
 #include <QSettings>
 #include <QShortcut>
 #include <QListWidgetItem>
+#include <DDialog>
 #include <DInputDialog>
 #include <DTitlebar>
 
@@ -22,15 +23,31 @@ MainWindow::MainWindow(QWidget *parent)
     : DMainWindow{parent}, ui{new Ui::MainWindow} {
   ui->setupUi(this);
 
+  m_saveTimer = new QTimer(this);
+  m_saveTimer->setSingleShot(true);
+  m_saveTimer->setInterval(1500);
+  connect(m_saveTimer, &QTimer::timeout, this, [this]() { saveTasks(); });
+
   connect(ui->addTaskButton, &QPushButton::clicked, this, &MainWindow::addTask);
   connect(ui->searchEdit, &QLineEdit::textChanged, this, &MainWindow::filterTasks);
   connect(ui->clearCompletedButton, &QPushButton::clicked, this, &MainWindow::clearCompleted);
+  connect(ui->statsButton, &QPushButton::clicked, this, &MainWindow::showStats);
+  connect(ui->undoButton, &QPushButton::clicked, this, &MainWindow::undoDelete);
 
   auto addShortcut = new QShortcut(QKeySequence("Ctrl+N"), this);
   connect(addShortcut, &QShortcut::activated, this, &MainWindow::addTask);
 
+  auto clearShortcut = new QShortcut(QKeySequence("Ctrl+Delete"), this);
+  connect(clearShortcut, &QShortcut::activated, this, &MainWindow::clearCompleted);
+
+  auto escapeShortcut = new QShortcut(QKeySequence("Escape"), this);
+  connect(escapeShortcut, &QShortcut::activated, this, [this]() {
+    ui->searchEdit->clear();
+    ui->searchEdit->clearFocus();
+  });
+
   connect(ui->taskList->model(), &QAbstractItemModel::rowsMoved,
-          this, [this]() { syncTasksFromList(); saveTasks(); });
+          this, [this]() { syncTasksFromList(); scheduleSave(); });
 
   setupMenu();
   loadTasks();
@@ -49,8 +66,20 @@ void MainWindow::setupMenu() {
                                        tr("Exportar tareas..."));
   auto importAction = menu->addAction(QIcon::fromTheme("document-open"),
                                        tr("Importar tareas..."));
+  auto statsAction = menu->addAction(QIcon::fromTheme("office-chart-line"),
+                                      tr("Estadísticas..."));
   connect(exportAction, &QAction::triggered, this, [this]() { exportTasks(); });
   connect(importAction, &QAction::triggered, this, [this]() { importTasks(); });
+  connect(statsAction, &QAction::triggered, this, &MainWindow::showStats);
+
+  auto exportShortcut = new QShortcut(QKeySequence("Ctrl+E"), this);
+  connect(exportShortcut, &QShortcut::activated, this, [this]() { exportTasks(); });
+
+  auto importShortcut = new QShortcut(QKeySequence("Ctrl+I"), this);
+  connect(importShortcut, &QShortcut::activated, this, [this]() { importTasks(); });
+
+  auto statsShortcut = new QShortcut(QKeySequence("Ctrl+T"), this);
+  connect(statsShortcut, &QShortcut::activated, this, &MainWindow::showStats);
 
   if (auto tb = this->titlebar()) {
     tb->setMenu(menu);
@@ -67,6 +96,7 @@ void MainWindow::exportTasks() const {
     QJsonObject obj;
     obj["name"] = task->name();
     obj["completed"] = task->isCompleted();
+    obj["createdAt"] = task->createdAt().toString(Qt::ISODate);
     arr.append(obj);
   }
 
@@ -74,7 +104,6 @@ void MainWindow::exportTasks() const {
   QFile file(path);
   if (file.open(QIODevice::WriteOnly)) {
     file.write(doc.toJson(QJsonDocument::Indented));
-    file.close();
   }
 }
 
@@ -95,24 +124,34 @@ void MainWindow::importTasks() {
     const auto name = obj["name"].toString();
     if (name.isEmpty()) continue;
 
-    const auto task = new Task(name);
-    connect(task, &Task::removed, this, &MainWindow::removeTask);
-    connect(task, &Task::statusChanged, this, &MainWindow::taskStatusChanged);
-    task->setCompleted(obj["completed"].toBool());
+    auto createdAt = QDateTime::fromString(obj["createdAt"].toString(), Qt::ISODate);
+    if (!createdAt.isValid()) createdAt = QDateTime::currentDateTime();
 
-    const auto item = new QListWidgetItem();
-    item->setSizeHint(QSize(0, 40));
-    ui->taskList->addItem(item);
-    ui->taskList->setItemWidget(item, task);
-    m_tasks.push_back(task);
+    createTask(name, createdAt, obj["completed"].toBool());
   }
 
   updateStatus();
   showEmptyState();
-  saveTasks();
+  scheduleSave();
+}
+
+Task *MainWindow::createTask(const QString &name, const QDateTime &createdAt,
+                              bool completed) {
+  const auto task = new Task(name, createdAt);
+  connect(task, &Task::removed, this, &MainWindow::removeTask);
+  connect(task, &Task::statusChanged, this, &MainWindow::taskStatusChanged);
+
+  const auto item = new QListWidgetItem();
+  item->setSizeHint(QSize(0, 40));
+  ui->taskList->addItem(item);
+  ui->taskList->setItemWidget(item, task);
+  task->setCompleted(completed);
+  m_tasks.push_back(task);
+  return task;
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
+  m_saveTimer->stop();
   saveTasks();
   DMainWindow::closeEvent(event);
 }
@@ -140,9 +179,10 @@ void MainWindow::updateStatus() {
 
   ui->progressBar->setValue(total > 0 ? (completeCount * 100 / total) : 0);
   ui->progressBar->setToolTip(
-      QString{"%1% completado (%2/%3)"}.arg(
-          total > 0 ? QString::number(completeCount * 100 / total) : "0")
-          .arg(completeCount).arg(total));
+      QString{"%1% completado (%2/%3)"}
+          .arg(total > 0 ? QString::number(completeCount * 100 / total) : "0")
+          .arg(completeCount)
+          .arg(total));
 
   setWindowTitle(QString{"Deepines ToDo — %1 pendiente%2"}
                      .arg(todoCount)
@@ -160,18 +200,10 @@ void MainWindow::addTask() {
       QLineEdit::Normal, tr("Tarea sin título"), &isOk);
   if (isOk && !name.isEmpty()) {
     qDebug() << "Añadiendo tarea nueva";
-    const auto task = new Task(name);
-    connect(task, &Task::removed, this, &MainWindow::removeTask);
-    connect(task, &Task::statusChanged, this, &MainWindow::taskStatusChanged);
-
-    const auto item = new QListWidgetItem();
-    item->setSizeHint(QSize(0, 40));
-    ui->taskList->addItem(item);
-    ui->taskList->setItemWidget(item, task);
-    m_tasks.emplace_back(task);
+    createTask(name, QDateTime::currentDateTime(), false);
     updateStatus();
     showEmptyState();
-    saveTasks();
+    scheduleSave();
   }
 }
 
@@ -181,6 +213,9 @@ void MainWindow::removeTask(Task *task) {
       tr("¿Estás seguro de eliminar la tarea '%1'?").arg(task->name()),
       QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
   if (result != QMessageBox::Yes) return;
+
+  m_lastDeleted = std::make_unique<DeletedTaskInfo>(
+      DeletedTaskInfo{task->name(), task->isCompleted(), task->createdAt()});
 
   for (int i = 0; i < ui->taskList->count(); ++i) {
     const auto item = ui->taskList->item(i);
@@ -197,12 +232,32 @@ void MainWindow::removeTask(Task *task) {
   task->deleteLater();
   updateStatus();
   showEmptyState();
-  saveTasks();
+  scheduleSave();
+
+  ui->undoButton->setVisible(true);
+  QTimer::singleShot(5000, this, [this]() {
+    if (ui->undoButton->isVisible()) {
+      ui->undoButton->setVisible(false);
+      m_lastDeleted.reset();
+    }
+  });
+}
+
+void MainWindow::undoDelete() {
+  if (!m_lastDeleted) return;
+
+  createTask(m_lastDeleted->name, m_lastDeleted->createdAt,
+             m_lastDeleted->completed);
+  m_lastDeleted.reset();
+  ui->undoButton->setVisible(false);
+  updateStatus();
+  showEmptyState();
+  scheduleSave();
 }
 
 void MainWindow::taskStatusChanged(Task *) {
   updateStatus();
-  saveTasks();
+  scheduleSave();
 }
 
 void MainWindow::filterTasks(const QString &text) {
@@ -238,7 +293,42 @@ void MainWindow::clearCompleted() {
   }
   updateStatus();
   showEmptyState();
-  saveTasks();
+  scheduleSave();
+}
+
+void MainWindow::showStats() {
+  int total = static_cast<int>(m_tasks.size());
+  int completed{};
+  int today{};
+  const auto todayStart = QDateTime::currentDateTime().date().startOfDay();
+
+  for (const auto &t : m_tasks) {
+    if (t->isCompleted()) ++completed;
+    if (t->createdAt() >= todayStart) ++today;
+  }
+  const auto pending = total - completed;
+
+  auto dialog = new DDialog(this);
+  dialog->setWindowTitle(tr("Estadísticas"));
+  dialog->setIcon(QIcon::fromTheme("office-chart-line"));
+
+  QString msg;
+  msg += tr("Total de tareas: %1\n").arg(total);
+  msg += tr("Pendientes: %1\n").arg(pending);
+  msg += tr("Finalizadas: %1\n").arg(completed);
+  if (total > 0) {
+    msg += tr("Completadas: %1%\n").arg(completed * 100 / total);
+  }
+  msg += tr("Creadas hoy: %1").arg(today);
+
+  dialog->setMessage(msg);
+  dialog->addButton(tr("Cerrar"));
+  dialog->exec();
+  dialog->deleteLater();
+}
+
+void MainWindow::scheduleSave() {
+  m_saveTimer->start();
 }
 
 void MainWindow::saveTasks() const {
@@ -251,6 +341,7 @@ void MainWindow::saveTasks() const {
     settings.setArrayIndex(i);
     settings.setValue("name", task->name());
     settings.setValue("completed", task->isCompleted());
+    settings.setValue("createdAt", task->createdAt().toString(Qt::ISODate));
   }
   settings.endArray();
 }
@@ -262,18 +353,12 @@ void MainWindow::loadTasks() {
     settings.setArrayIndex(i);
     const auto name = settings.value("name").toString();
     const auto completed = settings.value("completed").toBool();
+    const auto createdAt = QDateTime::fromString(
+        settings.value("createdAt").toString(), Qt::ISODate);
     if (name.isEmpty()) continue;
 
-    const auto task = new Task(name);
-    connect(task, &Task::removed, this, &MainWindow::removeTask);
-    connect(task, &Task::statusChanged, this, &MainWindow::taskStatusChanged);
-    task->setCompleted(completed);
-
-    const auto item = new QListWidgetItem();
-    item->setSizeHint(QSize(0, 40));
-    ui->taskList->addItem(item);
-    ui->taskList->setItemWidget(item, task);
-    m_tasks.push_back(task);
+    createTask(name, createdAt.isValid() ? createdAt : QDateTime::currentDateTime(),
+               completed);
   }
   settings.endArray();
 }

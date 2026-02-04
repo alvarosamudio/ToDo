@@ -25,6 +25,16 @@
        </widget>
       </item>
       <item>
+       <widget class="QPushButton" name="undoButton">
+        <property name="text">
+         <string>Deshacer</string>
+        </property>
+        <property name="visible">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QProgressBar" name="progressBar">
         <property name="minimum">
          <number>0</number>
@@ -57,12 +67,22 @@
        </widget>
       </item>
       <item>
+       <widget class="QPushButton" name="statsButton">
+        <property name="text">
+         <string>Estadísticas</string>
+        </property>
+        <property name="toolTip">
+         <string>Ver estadísticas de productividad</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QPushButton" name="clearCompletedButton">
         <property name="text">
          <string>Limpiar</string>
         </property>
         <property name="toolTip">
-         <string>Eliminar todas las tareas finalizadas</string>
+         <string>Eliminar todas las tareas finalizadas (Ctrl+Supr)</string>
         </property>
        </widget>
       </item>

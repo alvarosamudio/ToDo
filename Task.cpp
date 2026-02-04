@@ -4,15 +4,24 @@
 #include <QKeyEvent>
 
 Task::Task(const QString &name, QWidget *parent)
-    : QWidget{parent}, ui{new Ui::Task} {
-  ui->setupUi(this);
+    : QWidget{parent}, ui{new Ui::Task}, m_createdAt{QDateTime::currentDateTime()} {
+  init();
   setName(name);
+}
+
+Task::Task(const QString &name, const QDateTime &createdAt, QWidget *parent)
+    : QWidget{parent}, ui{new Ui::Task}, m_createdAt{createdAt} {
+  init();
+  setName(name);
+}
+
+void Task::init() {
+  ui->setupUi(this);
   connect(ui->editButton, &QPushButton::clicked, this, &Task::rename);
   connect(ui->removeButton, &QPushButton::clicked,
           [this]() { emit removed(this); });
   connect(ui->checkBox, &QCheckBox::toggled, this, &Task::checked);
   connect(ui->editBox, &QLineEdit::returnPressed, this, &Task::finishEdit);
-
   ui->editBox->installEventFilter(this);
 }
 
@@ -26,6 +35,22 @@ void Task::setName(const QString &name) {
 QString Task::name() const { return ui->checkBox->text(); }
 
 bool Task::isCompleted() const { return ui->checkBox->isChecked(); }
+
+QDateTime Task::createdAt() const { return m_createdAt; }
+
+QString Task::formatRelativeTime() const {
+  const auto now = QDateTime::currentDateTime();
+  const auto secs = m_createdAt.secsTo(now);
+  if (secs < 10) return QStringLiteral("ahora");
+  if (secs < 60) return QStringLiteral("ahora mismo");
+  if (secs < 3600) return QString("hace %1 min").arg(secs / 60);
+  if (secs < 86400) return QString("hace %1 h").arg(secs / 3600);
+  const auto days = secs / 86400;
+  if (days == 1) return QStringLiteral("ayer");
+  if (days < 30) return QString("hace %1 d").arg(days);
+  if (days < 365) return QString("hace %1 mes").arg(days / 30);
+  return QString("hace %1 a").arg(days / 365);
+}
 
 void Task::setCompleted(bool completed) {
   const auto wasBlocked = ui->checkBox->blockSignals(true);
