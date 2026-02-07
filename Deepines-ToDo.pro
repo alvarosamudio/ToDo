@@ -3,8 +3,6 @@ QT       += core gui
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG += c++17 link_pkgconfig
-
-
 PKGCONFIG += dtkwidget
 
 TARGET = DeepinesToDo
@@ -14,22 +12,31 @@ VERSION = 1.0.0
 DEFINES += APP_VERSION=\\\"$$VERSION\\\"
 
 SOURCES += \
-    Task.cpp \
-    main.cpp \
-    MainWindow.cpp
+    src/Task.cpp \
+    src/main.cpp \
+    src/MainWindow.cpp
 
 HEADERS += \
-    MainWindow.h \
-    Task.h
+    src/MainWindow.h \
+    src/Task.h
 
 FORMS += \
-    MainWindow.ui \
-    Task.ui
+    src/MainWindow.ui \
+    src/Task.ui
 
 RESOURCES += \
-    imgs.qrc
+    resources/imgs.qrc
 
-# Default rules for deployment.
-qnx: target.path = /tmp/$${TARGET}/bin
-else: unix:!android: target.path = /opt/$${TARGET}/bin
-!isEmpty(target.path): INSTALLS += target
+target.path = /usr/bin
+
+desktop.path = /usr/share/applications
+desktop.files = resources/deepines-todo.desktop
+
+icon.path = /usr/share/icons/hicolor/256x256/apps
+icon.files = resources/Logo-Racoon.png
+icon.extra = mv $(DESTDIR)$(icon.path)/Logo-Racoon.png $(DESTDIR)$(icon.path)/deepines-todo.png
+
+doc.path = /usr/share/doc/$${TARGET}
+doc.files = README.md LICENSE
+
+INSTALLS += target desktop icon doc

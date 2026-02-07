@@ -1,4 +1,5 @@
 # Build
+build/
 Makefile
 .qmake.stash
 *.o
@@ -12,3 +13,13 @@ DeepinesToDo
 
 # Temp
 empty.cpp
+
+# Debian build artifacts
+debian/.debhelper/
+debian/deepines-todo/
+debian/deepines-todo-dbgsym/
+debian/files
+debian/*.substvars
+debian/*.debhelper
+*.deb
+*.ddeb

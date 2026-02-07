@@ -1,0 +1,23 @@
+Source: deepines-todo
+Section: utils
+Priority: optional
+Maintainer: Deepin Latin Code <alvarosamudio@protonmail.com>
+Build-Depends: debhelper (>= 12), qt5-qmake, qtbase5-dev, libdtkwidget-dev
+Standards-Version: 4.5.0
+Homepage: https://deepinenespanol.org
+
+Package: deepines-todo
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libdtkwidget5
+Description: ToDo App of the deepin community in Spanish
+ Simple and elegant todo list application for Deepin Desktop.
+ Features:
+  * Create, edit, and delete tasks
+  * Mark tasks as completed
+  * Drag & drop to reorder
+  * Search and filter
+  * In-place renaming with double-click
+  * Undo delete
+  * Statistics and progress bar
+  * Export/import to JSON
+  * Persistent storage across sessions

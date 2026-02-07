@@ -1,0 +1,7 @@
+deepines-todo (1.0.0-1) stable; urgency=medium
+
+  * Initial release.
+  * Task management with persistence, drag & drop, and search.
+  * Date tracking, statistics, and JSON export/import.
+
+ -- Deepin Latin Code <alvarosamudio@protonmail.com>  Thu, 09 Jul 2026 19:00:00 -0500
