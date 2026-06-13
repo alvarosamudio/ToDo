@@ -8,10 +8,6 @@ DWIDGET_USE_NAMESPACE
 int main(int argc, char *argv[]) {
   DApplication a(argc, argv);
 
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-  a.setAttribute(Qt::AA_UseHighDpiPixmaps);
-#endif
-
   a.setProductName("Deepines ToDo");
   a.setApplicationName("Deepines ToDo");
 

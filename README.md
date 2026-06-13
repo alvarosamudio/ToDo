@@ -36,8 +36,8 @@ App de tareas de la comunidad deepin en Español. Construida con Qt5/6 y DTK par
 
 ### Dependencias
 
-- Qt 5.15+ o Qt 6.x (Widgets, DBus)
-- DTK Widget 5.5+
+- Qt 6.x (Widgets, DBus)
+- DTK Widget 6.x
 - pkg-config
 - g++ 10+ o clang 12+
 - cmake 3.14+

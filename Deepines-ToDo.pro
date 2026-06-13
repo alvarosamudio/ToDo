@@ -1,9 +1,7 @@
-QT       += core gui
-
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+QT       += core gui widgets dbus
 
 CONFIG += c++17 link_pkgconfig
-PKGCONFIG += dtkwidget
+PKGCONFIG += dtk6widget
 
 TARGET = DeepinesToDo
 TEMPLATE = app

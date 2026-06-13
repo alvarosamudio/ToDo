@@ -7,11 +7,10 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets DBus)
+find_package(Qt6 REQUIRED COMPONENTS Widgets DBus)
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(DTK REQUIRED dtkwidget)
+pkg_check_modules(DTK REQUIRED dtk6widget)
 
 add_executable(DeepinesToDo
     src/main.cpp
@@ -29,8 +28,8 @@ target_include_directories(DeepinesToDo PRIVATE
 )
 
 target_link_libraries(DeepinesToDo PRIVATE
-    Qt${QT_VERSION_MAJOR}::Widgets
-    Qt${QT_VERSION_MAJOR}::DBus
+    Qt6::Widgets
+    Qt6::DBus
     ${DTK_LIBRARIES}
 )
 
