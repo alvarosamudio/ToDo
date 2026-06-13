@@ -8,17 +8,17 @@ DWIDGET_USE_NAMESPACE
 int main(int argc, char *argv[]) {
   DApplication a(argc, argv);
 
-  a.setProductName("Deepines ToDo");
-  a.setApplicationName("Deepines ToDo");
+  a.setProductName("ToDo");
+  a.setApplicationName("ToDo");
 
   DAboutDialog dialog;
-  dialog.setWindowTitle("Acerca de Deepines ToDo");
-  dialog.setProductName("Deepines ToDo");
+  dialog.setWindowTitle("Acerca de ToDo");
+  dialog.setProductName("ToDo");
   dialog.setVersion(DApplication::buildVersion("Version 1.0"));
   dialog.setDescription(
       QStringLiteral(
           "<span style='font-size:8pt; font-weight:600;'>"
-          "ToDo App de la comunidad deepin en Español"
+          "App de tareas de la comunidad deepin en Español"
           "</span><br/><br/>"
           "<span style='font-size:8pt; font-weight:600;'>Deepin en Español </span>"
           "<a href='https://deepinenespanol.org'>https://deepinenespanol.org</a><br/>"

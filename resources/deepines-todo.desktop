@@ -1,7 +1,7 @@
 [Desktop Entry]
-Name=Deepines ToDo
-Name[es]=Deepines ToDo
-Comment=ToDo App of the deepin community in Spanish
+Name=ToDo
+Name[es]=ToDo
+Comment=App de tareas de la comunidad deepin en Español
 Comment[es]=App de tareas de la comunidad deepin en Español
 Exec=DeepinesToDo
 Icon=deepines-todo

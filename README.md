@@ -1,6 +1,6 @@
-# Deepines ToDo
+# ToDo
 
-App de tareas de la comunidad deepin en Español. Construida con Qt5/6 y DTK para el escritorio Deepin.
+App de tareas de la comunidad deepin en Español. Construida con Qt6 y DTK para el escritorio Deepin.
 
 <p align="center">
   <img src="resources/Logo-Racoon.png" width="128" alt="Deepines ToDo Logo">
@@ -53,7 +53,7 @@ make -j$(nproc)
 ### Ejecutar
 
 ```bash
-./DeepinesToDo
+./ToDo
 ```
 
 ## Instalación
@@ -77,10 +77,10 @@ sudo cmake --install build
 ```
 
 Esto instala:
-- Binario en `/usr/bin/DeepinesToDo`
+- Binario en `/usr/bin/ToDo`
 - Icono en `/usr/share/icons/hicolor/256x256/apps/deepines-todo.png`
 - Desktop entry en `/usr/share/applications/deepines-todo.desktop`
-- Documentación en `/usr/share/doc/DeepinesToDo/`
+- Documentación en `/usr/share/doc/ToDo/`
 
 ## Estructura del proyecto
 

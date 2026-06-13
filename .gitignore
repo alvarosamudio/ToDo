@@ -10,7 +10,7 @@ moc_predefs.h
 *.pro.user
 
 # Binary
-DeepinesToDo
+ToDo
 
 # Temp
 empty.cpp

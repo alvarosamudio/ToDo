@@ -3,7 +3,7 @@ QT       += core gui widgets dbus
 CONFIG += c++17 link_pkgconfig
 PKGCONFIG += dtk6widget
 
-TARGET = DeepinesToDo
+TARGET = ToDo
 TEMPLATE = app
 VERSION = 1.0.0
 
@@ -34,7 +34,7 @@ icon.path = /usr/share/icons/hicolor/256x256/apps
 icon.files = resources/Logo-Racoon.png
 icon.extra = mv $(DESTDIR)$(icon.path)/Logo-Racoon.png $(DESTDIR)$(icon.path)/deepines-todo.png
 
-doc.path = /usr/share/doc/$${TARGET}
+doc.path = /usr/share/doc/ToDo
 doc.files = README.md LICENSE
 
 INSTALLS += target desktop icon doc

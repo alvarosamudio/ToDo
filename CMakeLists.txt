@@ -42,4 +42,4 @@ install(FILES resources/deepines-todo.desktop DESTINATION share/applications)
 install(FILES resources/Logo-Racoon.png
     DESTINATION share/icons/hicolor/256x256/apps
     RENAME deepines-todo.png)
-install(FILES README.md LICENSE DESTINATION share/doc/${PROJECT_NAME})
+install(FILES README.md LICENSE DESTINATION share/doc/ToDo)

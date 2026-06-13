@@ -183,7 +183,7 @@ void MainWindow::updateStatus() {
           .arg(completeCount)
           .arg(total));
 
-  setWindowTitle(QString{"Deepines ToDo — %1 pendiente%2"}
+  setWindowTitle(QString{"ToDo — %1 pendiente%2"}
                      .arg(todoCount)
                      .arg(todoCount == 1 ? "" : "s"));
 }

@@ -9,7 +9,7 @@ Homepage: https://deepinenespanol.org
 Package: deepines-todo
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, libdtk6widget1
-Description: ToDo App of the deepin community in Spanish
+Description: App de tareas de la comunidad deepin en Español
  Simple and elegant todo list application for Deepin Desktop.
  Features:
   * Create, edit, and delete tasks
