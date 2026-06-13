@@ -7,12 +7,15 @@ moc_*.cpp
 qrc_*.cpp
 ui_*.h
 moc_predefs.h
+*.pro.user
 
 # Binary
 DeepinesToDo
 
 # Temp
 empty.cpp
+compile_commands.json
+.cache/
 
 # Debian build artifacts
 debian/.debhelper/
@@ -23,3 +26,9 @@ debian/*.substvars
 debian/*.debhelper
 *.deb
 *.ddeb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~

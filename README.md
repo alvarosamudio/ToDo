@@ -6,33 +6,33 @@ App de tareas de la comunidad deepin en Español. Construida con Qt5/6 y DTK par
   <img src="resources/Logo-Racoon.png" width="128" alt="Deepines ToDo Logo">
 </p>
 
-## Caracteristicas
+## Características
 
 - **Crear, editar, eliminar tareas** con renombrado inline (doble clic)
 - **Marcar tareas como completadas** con tachado visual
 - **Drag & drop** para reordenar tareas
-- **Busqueda y filtro** en tiempo real por nombre
+- **Búsqueda y filtro** en tiempo real por nombre
 - **Atajos de teclado**:
-  - `Ctrl+N` — Anadir tarea
+  - `Ctrl+N` — Añadir tarea
   - `Ctrl+Delete` — Limpiar completadas
   - `Ctrl+E` — Exportar a JSON
   - `Ctrl+I` — Importar desde JSON
-  - `Ctrl+T` — Estadisticas
-  - `Escape` — Limpiar busqueda
+  - `Ctrl+T` — Estadísticas
+  - `Escape` — Limpiar búsqueda
 - **Auto-guardado** con debounce (1.5s) — nunca pierdes datos
-- **Deshacer eliminar** — la ultima tarea eliminada se puede restaurar (5 segundos)
+- **Deshacer eliminar** — la última tarea eliminada se puede restaurar (5 segundos)
 - **Barra de progreso** con porcentaje de completitud
-- **Dialogo de estadisticas**: total, pendientes, finalizadas, porcentaje, creadas hoy
-- **Exportar/Importar JSON** desde el menu del titulo o atajos
+- **Diálogo de estadísticas**: total, pendientes, finalizadas, porcentaje, creadas hoy
+- **Exportar/Importar JSON** desde el menú del título o atajos
 - **Almacenamiento persistente** con QSettings
-- **Fecha de creacion** con tiempo relativo ("hace 5 min", "ayer")
-- **Integracion DTK**: dialogo About y menu en la barra de titulo
+- **Fecha de creación** con tiempo relativo ("hace 5 min", "ayer")
+- **Integración DTK**: diálogo About y menú en la barra de título
 
 ## Capturas
 
-*(Agregar capturas aqui)*
+*(Agregar capturas aquí)*
 
-## Compilar desde codigo fuente
+## Compilar desde código fuente
 
 ### Dependencias
 
@@ -40,15 +40,7 @@ App de tareas de la comunidad deepin en Español. Construida con Qt5/6 y DTK par
 - DTK Widget 5.5+
 - pkg-config
 - g++ 10+ o clang 12+
-- cmake 3.14+ (para build con CMake)
-
-### Build con qmake
-
-```bash
-mkdir build && cd build
-qmake -qt=5 ../Deepines-ToDo.pro
-make -j$(nproc)
-```
+- cmake 3.14+
 
 ### Build con CMake
 
@@ -64,12 +56,12 @@ make -j$(nproc)
 ./DeepinesToDo
 ```
 
-## Instalacion
+## Instalación
 
 ### Paquete Debian/Ubuntu
 
 ```bash
-# Desde codigo fuente
+# Desde código fuente
 dpkg-buildpackage -us -uc
 
 # O instalar .deb pre-compilado
@@ -80,14 +72,15 @@ sudo apt install -f
 ### Make install (sistema completo)
 
 ```bash
-sudo make install
+cmake -B build -DCMAKE_INSTALL_PREFIX=/usr
+sudo cmake --install build
 ```
 
 Esto instala:
 - Binario en `/usr/bin/DeepinesToDo`
 - Icono en `/usr/share/icons/hicolor/256x256/apps/deepines-todo.png`
 - Desktop entry en `/usr/share/applications/deepines-todo.desktop`
-- Documentacion en `/usr/share/doc/DeepinesToDo/`
+- Documentación en `/usr/share/doc/DeepinesToDo/`
 
 ## Estructura del proyecto
 
@@ -97,15 +90,15 @@ Esto instala:
 ├── README.md
 ├── LICENSE                     # GPL-3.0
 ├── .gitignore
-├── src/                        # Codigo fuente
-│   ├── main.cpp                # Punto de entrada, configuracion DTK
-│   ├── MainWindow.h/.cpp       # Ventana principal, logica de tareas
+├── src/                        # Código fuente
+│   ├── main.cpp                # Punto de entrada, configuración DTK
+│   ├── MainWindow.h/.cpp       # Ventana principal, lógica de tareas
 │   ├── MainWindow.ui           # UI de la ventana principal (Qt Designer)
 │   ├── Task.h/.cpp             # Widget de tarea individual
 │   └── Task.ui                 # UI de cada tarea (Qt Designer)
 ├── resources/                  # Recursos
 │   ├── imgs.qrc                # Archivo de recursos Qt
-│   ├── Logo-Racoon.png         # Icono de la aplicacion
+│   ├── Logo-Racoon.png         # Icono de la aplicación
 │   └── deepines-todo.desktop   # Archivo .desktop para Linux
 ├── debian/                     # Empaquetado Debian
 │   ├── changelog
@@ -121,7 +114,7 @@ Esto instala:
 
 ## Arquitectura
 
-La aplicacion esta compuesta por dos clases principales:
+La aplicación está compuesta por dos clases principales:
 
 ### `MainWindow` (hereda de `DMainWindow`)
 
@@ -130,30 +123,30 @@ Ventana principal que gestiona la lista de tareas. Responsabilidades:
 - CRUD de tareas (crear, renombrar, eliminar, marcar completada)
 - Filtrado por nombre en tiempo real
 - Reordenamiento con drag & drop (`QListWidget` con `InternalMove`)
-- Persistencia con `QSettings` (guarda nombre, estado y fecha de creacion)
+- Persistencia con `QSettings` (guarda nombre, estado y fecha de creación)
 - Auto-guardado con `QTimer` de debounce (1.5 segundos)
-- Undo delete: almacena la ultima tarea eliminada para restaurar
+- Undo delete: almacena la última tarea eliminada para restaurar
 - Exportar/Importar tareas a formato JSON
-- Dialogo de estadisticas con `DDialog`
-- Menu en la barra de titulo (`DTitlebar`)
+- Diálogo de estadísticas con `DDialog`
+- Menú en la barra de título (`DTitlebar`)
 
 ### `Task` (hereda de `DWidget`)
 
 Widget individual para cada tarea. Funcionalidad:
 
 - Checkbox con tachado al completar
-- Edicion inline con `QStackedWidget` (alterna entre vista y `QLineEdit`)
+- Edición inline con `QStackedWidget` (alterna entre vista y `QLineEdit`)
 - Doble clic para renombrar
-- `Escape` cancela la edicion, `Enter` guarda
-- Fecha de creacion con tiempo relativo
-- Senales `removed` y `statusChanged` para comunicarse con `MainWindow`
+- `Escape` cancela la edición, `Enter` guarda
+- Fecha de creación con tiempo relativo
+- Señales `removed` y `statusChanged` para comunicarse con `MainWindow`
 
 ### Flujo de datos
 
 ```
-Usuario interactua con Task widget
+Usuario interactúa con Task widget
     → Task emite removed/statusChanged
-    → MainWindow recibe senal
+    → MainWindow recibe señal
     → Actualiza m_tasks vector y UI
     → scheduleSave() inicia QTimer (1.5s debounce)
     → saveTasks() escribe a QSettings
@@ -161,24 +154,24 @@ Usuario interactua con Task widget
 
 ## Atajos de teclado
 
-| Atajo | Accion |
+| Atajo | Acción |
 |-------|--------|
-| `Ctrl+N` | Anadir nueva tarea |
+| `Ctrl+N` | Añadir nueva tarea |
 | `Ctrl+Delete` | Limpiar tareas completadas |
 | `Ctrl+E` | Exportar tareas a JSON |
 | `Ctrl+I` | Importar tareas desde JSON |
-| `Ctrl+T` | Mostrar estadisticas |
-| `Escape` | Limpiar campo de busqueda |
+| `Ctrl+T` | Mostrar estadísticas |
+| `Escape` | Limpiar campo de búsqueda |
 | `Doble clic` | Renombrar tarea |
 | `Enter` | Guardar nombre al editar |
-| `Escape` (editando) | Cancelar edicion |
+| `Escape` (editando) | Cancelar edición |
 
 ## Licencia
 
 GPL-3.0-or-later — ver [LICENSE](LICENSE).
 
-## Creditos
+## Créditos
 
-- **Deepin en Espanol** — https://deepinenespanol.org
+- **Deepin en Español** — https://deepinenespanol.org
 - **Deepin Latin Code** — developers
 - **Alvaro Samudio** — autor

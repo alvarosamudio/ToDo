@@ -30,6 +30,7 @@ target_include_directories(DeepinesToDo PRIVATE
 
 target_link_libraries(DeepinesToDo PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::DBus
     ${DTK_LIBRARIES}
 )
 

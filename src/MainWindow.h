@@ -4,6 +4,7 @@
 #include <DMainWindow>
 #include <QDateTime>
 #include <QTimer>
+#include <memory>
 #include <vector>
 #include "Task.h"
 
@@ -12,7 +13,6 @@ DWIDGET_USE_NAMESPACE
 namespace Ui {
 class MainWindow;
 }
-QT_END_NAMESPACE
 
 struct DeletedTaskInfo {
   QString name;
@@ -26,9 +26,6 @@ class MainWindow : public DMainWindow {
 public:
   explicit MainWindow(QWidget *parent = nullptr);
   ~MainWindow();
-
-  void updateStatus();
-  void syncTasksFromList();
 
 public slots:
   void addTask();
@@ -46,6 +43,8 @@ private:
   void saveTasks() const;
   void loadTasks();
   void showEmptyState();
+  void updateStatus();
+  void syncTasksFromList();
   void setupMenu();
   void exportTasks() const;
   void importTasks();
@@ -53,7 +52,7 @@ private:
   Task *createTask(const QString &name, const QDateTime &createdAt,
                    bool completed);
 
-  Ui::MainWindow *ui;
+  std::unique_ptr<Ui::MainWindow> ui;
   std::vector<Task *> m_tasks;
   QTimer *m_saveTimer;
   std::unique_ptr<DeletedTaskInfo> m_lastDeleted;

@@ -20,7 +20,7 @@
 DWIDGET_USE_NAMESPACE
 
 MainWindow::MainWindow(QWidget *parent)
-    : DMainWindow{parent}, ui{new Ui::MainWindow} {
+    : DMainWindow{parent}, ui{std::make_unique<Ui::MainWindow>()} {
   ui->setupUi(this);
 
   m_saveTimer = new QTimer(this);
@@ -57,7 +57,6 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow() {
   for (const auto task : m_tasks) delete task;
-  delete ui;
 }
 
 void MainWindow::setupMenu() {

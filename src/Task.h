@@ -3,13 +3,16 @@
 
 #include <QDateTime>
 #include <QString>
+#include <memory>
 #include <DWidget>
+
+DWIDGET_USE_NAMESPACE
 
 namespace Ui {
 class Task;
 }
 
-class Task : public QWidget {
+class Task : public DWidget {
   Q_OBJECT
 
 public:
@@ -39,7 +42,7 @@ protected:
 
 private:
   void init();
-  Ui::Task *ui;
+  std::unique_ptr<Ui::Task> ui;
   QDateTime m_createdAt;
 };
 

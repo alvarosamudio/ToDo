@@ -4,13 +4,13 @@
 #include <QKeyEvent>
 
 Task::Task(const QString &name, QWidget *parent)
-    : QWidget{parent}, ui{new Ui::Task}, m_createdAt{QDateTime::currentDateTime()} {
+    : DWidget{parent}, ui{std::make_unique<Ui::Task>()}, m_createdAt{QDateTime::currentDateTime()} {
   init();
   setName(name);
 }
 
 Task::Task(const QString &name, const QDateTime &createdAt, QWidget *parent)
-    : QWidget{parent}, ui{new Ui::Task}, m_createdAt{createdAt} {
+    : DWidget{parent}, ui{std::make_unique<Ui::Task>()}, m_createdAt{createdAt} {
   init();
   setName(name);
 }
@@ -25,7 +25,7 @@ void Task::init() {
   ui->editBox->installEventFilter(this);
 }
 
-Task::~Task() { delete ui; }
+Task::~Task() = default;
 
 void Task::setName(const QString &name) {
   ui->checkBox->setText(name);
@@ -41,15 +41,25 @@ QDateTime Task::createdAt() const { return m_createdAt; }
 QString Task::formatRelativeTime() const {
   const auto now = QDateTime::currentDateTime();
   const auto secs = m_createdAt.secsTo(now);
-  if (secs < 10) return QStringLiteral("ahora");
-  if (secs < 60) return QStringLiteral("ahora mismo");
-  if (secs < 3600) return QString("hace %1 min").arg(secs / 60);
-  if (secs < 86400) return QString("hace %1 h").arg(secs / 3600);
-  const auto days = secs / 86400;
+  if (secs < 0) return QStringLiteral("ahora");
+  if (secs < 60) return QStringLiteral("ahora");
+  if (secs < 3600) {
+    const int mins = secs / 60;
+    return QString("hace %1 min").arg(mins);
+  }
+  if (secs < 86400) {
+    const int hours = secs / 3600;
+    return QString("hace %1 h").arg(hours);
+  }
+  const int days = secs / 86400;
   if (days == 1) return QStringLiteral("ayer");
   if (days < 30) return QString("hace %1 d").arg(days);
-  if (days < 365) return QString("hace %1 mes").arg(days / 30);
-  return QString("hace %1 a").arg(days / 365);
+  if (days < 365) {
+    const int months = days / 30;
+    return QString("hace %1 %2").arg(months).arg(months == 1 ? "mes" : "meses");
+  }
+  const int years = days / 365;
+  return QString("hace %1 %2").arg(years).arg(years == 1 ? "año" : "años");
 }
 
 void Task::setCompleted(bool completed) {
