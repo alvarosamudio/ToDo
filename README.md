@@ -85,12 +85,10 @@ Esto instala:
 ## Estructura del proyecto
 
 ```
-├── CMakeLists.txt              # Build system CMake
-├── Deepines-ToDo.pro           # Build system qmake
+├── CMakeLists.txt              # Build system
 ├── README.md
 ├── LICENSE                     # GPL-3.0
-├── .gitignore
-├── src/                        # Código fuente
+├── .gitignore├── src/                        # Código fuente
 │   ├── main.cpp                # Punto de entrada, configuración DTK
 │   ├── MainWindow.h/.cpp       # Ventana principal, lógica de tareas
 │   ├── MainWindow.ui           # UI de la ventana principal (Qt Designer)
