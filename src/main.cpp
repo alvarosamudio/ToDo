@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
           "<span style='font-size:8pt; font-weight:600;'>Deepin en Español </span>"
           "<a href='https://deepinenespanol.org'>https://deepinenespanol.org</a><br/>"
           "<span style='font-size:8pt; font-weight:600;'>Deepin Latin Code - developers</span>"));
-  dialog.setCompanyLogo(QPixmap("://Logo-Racoon.png"));
+  dialog.setCompanyLogo(QPixmap("://todo-icon.svg"));
   dialog.setWebsiteName("deepinenespanol.org");
   dialog.setWebsiteLink("https://deepinenespanol.org");
 

@@ -39,7 +39,7 @@ target_compile_definitions(DeepinesToDo PRIVATE
 
 install(TARGETS DeepinesToDo RUNTIME DESTINATION bin)
 install(FILES resources/deepines-todo.desktop DESTINATION share/applications)
-install(FILES resources/Logo-Racoon.png
-    DESTINATION share/icons/hicolor/256x256/apps
-    RENAME deepines-todo.png)
+install(FILES resources/todo-icon.svg
+    DESTINATION share/icons/hicolor/scalable/apps
+    RENAME deepines-todo.svg)
 install(FILES README.md LICENSE DESTINATION share/doc/ToDo)

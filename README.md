@@ -3,7 +3,7 @@
 App de tareas de la comunidad deepin en Español. Construida con Qt6 y DTK para el escritorio Deepin.
 
 <p align="center">
-  <img src="resources/Logo-Racoon.png" width="128" alt="Deepines ToDo Logo">
+  <img src="resources/todo-icon.svg" width="128" alt="ToDo Logo">
 </p>
 
 ## Características
