@@ -2,5 +2,6 @@
     <qresource prefix="/">
         <file>Logo-Racoon.png</file>
         <file>todo-icon.svg</file>
+        <file>deepines-todo.appdata.xml</file>
     </qresource>
 </RCC>

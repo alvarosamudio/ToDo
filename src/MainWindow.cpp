@@ -10,11 +10,11 @@
 #include <QIcon>
 #include <QMenu>
 #include <QMessageBox>
+#include <QInputDialog>
 #include <QSettings>
 #include <QShortcut>
 #include <QListWidgetItem>
 #include <DDialog>
-#include <DInputDialog>
 #include <DTitlebar>
 
 DWIDGET_USE_NAMESPACE
@@ -331,7 +331,7 @@ void MainWindow::scheduleSave() {
 }
 
 void MainWindow::saveTasks() const {
-  QSettings settings("deepines", "DeepinesToDo");
+  QSettings settings("deepines", "ToDo");
   settings.beginWriteArray("tasks");
   for (int i = 0; i < ui->taskList->count(); ++i) {
     const auto item = ui->taskList->item(i);
@@ -346,7 +346,7 @@ void MainWindow::saveTasks() const {
 }
 
 void MainWindow::loadTasks() {
-  QSettings settings("deepines", "DeepinesToDo");
+  QSettings settings("deepines", "ToDo");
   const int size = settings.beginReadArray("tasks");
   for (int i = 0; i < size; ++i) {
     settings.setArrayIndex(i);

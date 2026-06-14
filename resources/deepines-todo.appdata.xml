@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>deepines-todo</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+
+  <name>ToDo</name>
+  <summary>App de tareas de la comunidad deepin en Español</summary>
+  <summary xml:lang="es">App de tareas de la comunidad deepin en Español</summary>
+
+  <description>
+    <p>
+      Aplicación de lista de tareas simple y elegante para el escritorio Deepin.
+      Crea, edita, elimina y reordena tareas con drag and drop.
+    </p>
+    <p xml:lang="es">
+      Aplicación de lista de tareas simple y elegante para el escritorio Deepin.
+      Crea, edita, elimina y reordena tareas con drag and drop.
+    </p>
+    <p>Características:</p>
+    <p xml:lang="es">Características:</p>
+    <ul>
+      <li>Crear, editar y eliminar tareas con renombrado inline</li>
+      <li>Marcar tareas como completadas con tachado visual</li>
+      <li>Drag &amp; drop para reordenar tareas</li>
+      <li>Búsqueda y filtro en tiempo real</li>
+      <li>Auto-guardado con debounce</li>
+      <li>Deshacer eliminar</li>
+      <li>Barra de progreso y estadísticas</li>
+      <li>Exportar/Importar JSON</li>
+      <li>Almacenamiento persistente</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">deepines-todo.desktop</launchable>
+
+  <url type="homepage">https://deepinenespanol.org</url>
+  <url type="bugtracker">https://github.com/alvarosamudio/deepines-ToDo/issues</url>
+
+  <developer id="org.deepinenespanol">
+    <name>Deepin Latin Code</name>
+  </developer>
+
+  <content_rating type="ohos-1.0"/>
+
+  <releases>
+    <release version="1.0.0" date="2026-07-09">
+      <description>
+        <p>Initial release.</p>
+      </description>
+    </release>
+  </releases>
+
+  <recommends>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </recommends>
+
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+</component>
