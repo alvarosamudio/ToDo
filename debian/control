@@ -2,8 +2,11 @@ Source: deepines-todo
 Section: utils
 Priority: optional
 Maintainer: Deepin Latin Code <alvarosamudio@protonmail.com>
-Build-Depends: debhelper (>= 12), cmake, qt6-base-dev, libdtk6widget-dev
-Standards-Version: 4.5.0
+Build-Depends: debhelper-compat (= 13),
+               cmake,
+               qt6-base-dev,
+               libdtk6widget-dev
+Standards-Version: 4.6.2
 Homepage: https://deepinenespanol.org
 
 Package: deepines-todo

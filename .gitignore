@@ -1,24 +1,39 @@
-# Build
-build/
-CMakeCache.txt
-CMakeFiles/
-cmake_install.cmake
-Makefile
+# C++ objects and libs
+*.slo
+*.lo
 *.o
+*.obj
 *.a
+*.lib
 *.so
 *.so.*
+*.dll
+*.exp
+*.ilk
+*.pdb
+*.map
+
+# Qt files
+Makefile*
 moc_*.cpp
-qrc_*.cpp
-ui_*.h
+mocs_compilation.cpp
 moc_predefs.h
+ui_*.h
+qrc_*.cpp
+.qmake.stash
+*.pyc
+*.user
+*.user.*
 
-# Binary
-ToDo
+# Build directories
+build*/
 
-# Temp
-compile_commands.json
-.cache/
+# Hidden files
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*~
 
 # Debian build artifacts
 debian/.debhelper/
@@ -29,10 +44,3 @@ debian/*.substvars
 debian/*.debhelper
 *.deb
 *.ddeb
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*~
-*.user
