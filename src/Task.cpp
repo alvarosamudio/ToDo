@@ -41,8 +41,8 @@ QDateTime Task::createdAt() const { return m_createdAt; }
 QString Task::formatRelativeTime() const {
   const auto now = QDateTime::currentDateTime();
   const auto secs = m_createdAt.secsTo(now);
-  if (secs < 0) return QStringLiteral("ahora");
-  if (secs < 60) return QStringLiteral("ahora");
+  if (secs < 0) return tr("ahora");
+  if (secs < 60) return tr("ahora");
   if (secs < 3600) {
     const int mins = secs / 60;
     return tr("hace %1 min").arg(mins);

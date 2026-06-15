@@ -2,6 +2,7 @@
 #include <DApplication>
 #include <DWidgetUtil>
 #include <DAboutDialog>
+#include <QTranslator>
 
 DWIDGET_USE_NAMESPACE
 
@@ -10,6 +11,12 @@ int main(int argc, char *argv[]) {
 
   a.setProductName("ToDo");
   a.setApplicationName("ToDo");
+
+  QTranslator translator;
+  const QString locale = QLocale::system().name();
+  if (translator.load(":/translations/ToDo_" + locale + ".qm")) {
+    a.installTranslator(&translator);
+  }
 
   DAboutDialog dialog;
   dialog.setWindowTitle("Acerca de ToDo");

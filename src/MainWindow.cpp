@@ -204,16 +204,16 @@ void MainWindow::updateStatus() {
   const auto todoCount = total - completeCount;
 
   ui->statusLabel->setText(
-      QString{"Estatus: %1 ToDo / %2 Finalizado"}.arg(todoCount).arg(completeCount));
+      tr("Estatus: %1 ToDo / %2 Finalizado").arg(todoCount).arg(completeCount));
 
   ui->progressBar->setValue(total > 0 ? (completeCount * 100 / total) : 0);
   ui->progressBar->setToolTip(
-      QString{"%1% completado (%2/%3)"}
+      tr("%1%% completado (%2/%3)")
           .arg(total > 0 ? QString::number(completeCount * 100 / total) : "0")
           .arg(completeCount)
           .arg(total));
 
-  setWindowTitle(QString{"ToDo — %1 pendiente%2"}
+  setWindowTitle(tr("ToDo — %1 pendiente%2")
                      .arg(todoCount)
                      .arg(todoCount == 1 ? "" : "s"));
 }
