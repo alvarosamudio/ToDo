@@ -1,0 +1,32 @@
+name: Publish
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build .deb package
+        run: |
+          docker build -t deepines-todo-builder -f .github/workflows/Dockerfile .
+          docker create --name builder deepines-todo-builder
+          docker cp builder:/output ./output
+
+      - name: Get version from tag
+        id: version
+        run: echo "tag=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: v${{ steps.version.outputs.tag }}
+          generate_release_notes: true
+          files: output/*.deb

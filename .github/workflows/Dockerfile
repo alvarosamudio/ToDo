@@ -9,9 +9,6 @@ RUN apt-get update && \
         fakeroot \
         qt6-base-dev \
         libdtk6widget-dev \
-        qt6-multimedia-dev \
-        qt6-tools-dev-tools \
-        qt6-l10n-tools \
         pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
