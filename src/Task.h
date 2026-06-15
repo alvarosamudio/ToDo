@@ -26,6 +26,7 @@ public:
   void setCompleted(bool completed);
   QDateTime createdAt() const;
   QString formatRelativeTime() const;
+  void updateDateLabel();
 
 public slots:
   void rename();

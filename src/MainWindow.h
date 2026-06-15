@@ -51,9 +51,10 @@ private:
   void scheduleSave();
   Task *createTask(const QString &name, const QDateTime &createdAt,
                    bool completed);
+  void removeTaskFromList(Task *task);
 
   std::unique_ptr<Ui::MainWindow> ui;
-  std::vector<Task *> m_tasks;
+  std::vector<std::unique_ptr<Task>> m_tasks;
   QTimer *m_saveTimer;
   std::unique_ptr<DeletedTaskInfo> m_lastDeleted;
 };

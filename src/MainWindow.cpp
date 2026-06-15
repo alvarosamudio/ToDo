@@ -55,9 +55,7 @@ MainWindow::MainWindow(QWidget *parent)
   showEmptyState();
 }
 
-MainWindow::~MainWindow() {
-  for (const auto task : m_tasks) delete task;
-}
+MainWindow::~MainWindow() = default;
 
 void MainWindow::setupMenu() {
   auto menu = new QMenu(this);
@@ -103,6 +101,9 @@ void MainWindow::exportTasks() const {
   QFile file(path);
   if (file.open(QIODevice::WriteOnly)) {
     file.write(doc.toJson(QJsonDocument::Indented));
+  } else {
+    QMessageBox::warning(nullptr, tr("Error"),
+                         tr("No se pudo guardar el archivo."));
   }
 }
 
@@ -112,13 +113,25 @@ void MainWindow::importTasks() {
   if (path.isEmpty()) return;
 
   QFile file(path);
-  if (!file.open(QIODevice::ReadOnly)) return;
+  if (!file.open(QIODevice::ReadOnly)) {
+    QMessageBox::warning(this, tr("Error"),
+                         tr("No se pudo abrir el archivo."));
+    return;
+  }
 
   const auto doc = QJsonDocument::fromJson(file.readAll());
   file.close();
 
+  if (doc.isNull() || !doc.isArray()) {
+    QMessageBox::warning(this, tr("Error"),
+                         tr("El archivo no contiene un JSON válido."));
+    return;
+  }
+
   const auto arr = doc.array();
+  int imported = 0;
   for (const auto &val : arr) {
+    if (!val.isObject()) continue;
     const auto obj = val.toObject();
     const auto name = obj["name"].toString();
     if (name.isEmpty()) continue;
@@ -127,26 +140,34 @@ void MainWindow::importTasks() {
     if (!createdAt.isValid()) createdAt = QDateTime::currentDateTime();
 
     createTask(name, createdAt, obj["completed"].toBool());
+    ++imported;
   }
 
   updateStatus();
   showEmptyState();
   scheduleSave();
+
+  if (imported > 0) {
+    QMessageBox::information(this, tr("Importar tareas"),
+                             tr("Se importaron %1 tareas.").arg(imported));
+  }
 }
 
 Task *MainWindow::createTask(const QString &name, const QDateTime &createdAt,
                               bool completed) {
-  const auto task = new Task(name, createdAt);
-  connect(task, &Task::removed, this, &MainWindow::removeTask);
-  connect(task, &Task::statusChanged, this, &MainWindow::taskStatusChanged);
+  auto task = std::make_unique<Task>(name, createdAt);
+  Task *taskPtr = task.get();
+  connect(taskPtr, &Task::removed, this, &MainWindow::removeTask);
+  connect(taskPtr, &Task::statusChanged, this, &MainWindow::taskStatusChanged);
 
   const auto item = new QListWidgetItem();
   item->setSizeHint(QSize(0, 40));
   ui->taskList->addItem(item);
-  ui->taskList->setItemWidget(item, task);
-  task->setCompleted(completed);
-  m_tasks.push_back(task);
-  return task;
+  ui->taskList->setItemWidget(item, taskPtr);
+  taskPtr->setCompleted(completed);
+  taskPtr->updateDateLabel();
+  m_tasks.push_back(std::move(task));
+  return taskPtr;
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
@@ -156,18 +177,27 @@ void MainWindow::closeEvent(QCloseEvent *event) {
 }
 
 void MainWindow::syncTasksFromList() {
-  std::vector<Task *> newOrder;
+  std::vector<Task *> ordered;
   for (int i = 0; i < ui->taskList->count(); ++i) {
     const auto item = ui->taskList->item(i);
     const auto task = static_cast<Task *>(ui->taskList->itemWidget(item));
-    if (task) newOrder.push_back(task);
+    if (task) ordered.push_back(task);
+  }
+
+  std::vector<std::unique_ptr<Task>> newOrder;
+  for (Task *t : ordered) {
+    auto it = std::find_if(m_tasks.begin(), m_tasks.end(),
+                           [t](const std::unique_ptr<Task> &ptr) { return ptr.get() == t; });
+    if (it != m_tasks.end()) {
+      newOrder.push_back(std::move(*it));
+    }
   }
   m_tasks = std::move(newOrder);
 }
 
 void MainWindow::updateStatus() {
   int completeCount{};
-  for (const auto t : m_tasks) {
+  for (const auto &t : m_tasks) {
     if (t->isCompleted()) ++completeCount;
   }
   const auto total = static_cast<int>(m_tasks.size());
@@ -206,6 +236,16 @@ void MainWindow::addTask() {
   }
 }
 
+void MainWindow::removeTaskFromList(Task *task) {
+  for (int i = 0; i < ui->taskList->count(); ++i) {
+    const auto item = ui->taskList->item(i);
+    if (ui->taskList->itemWidget(item) == task) {
+      delete ui->taskList->takeItem(i);
+      break;
+    }
+  }
+}
+
 void MainWindow::removeTask(Task *task) {
   const auto result = QMessageBox::question(
       this, tr("Eliminar tarea"),
@@ -216,18 +256,14 @@ void MainWindow::removeTask(Task *task) {
   m_lastDeleted = std::make_unique<DeletedTaskInfo>(
       DeletedTaskInfo{task->name(), task->isCompleted(), task->createdAt()});
 
-  for (int i = 0; i < ui->taskList->count(); ++i) {
-    const auto item = ui->taskList->item(i);
-    if (ui->taskList->itemWidget(item) == task) {
-      delete ui->taskList->takeItem(i);
-      break;
-    }
-  }
+  removeTaskFromList(task);
 
-  if (const auto it = std::find(m_tasks.cbegin(), m_tasks.cend(), task);
-      it != m_tasks.cend())
+  auto it = std::find_if(m_tasks.begin(), m_tasks.end(),
+                         [task](const std::unique_ptr<Task> &ptr) { return ptr.get() == task; });
+  if (it != m_tasks.end()) {
+    it->release();
     m_tasks.erase(it);
-
+  }
   task->deleteLater();
   updateStatus();
   showEmptyState();
@@ -270,7 +306,7 @@ void MainWindow::filterTasks(const QString &text) {
 
 void MainWindow::clearCompleted() {
   if (std::none_of(m_tasks.cbegin(), m_tasks.cend(),
-                   [](const Task *t) { return t->isCompleted(); }))
+                   [](const std::unique_ptr<Task> &t) { return t->isCompleted(); }))
     return;
 
   const auto result = QMessageBox::question(
@@ -284,9 +320,12 @@ void MainWindow::clearCompleted() {
     const auto task = static_cast<Task *>(ui->taskList->itemWidget(item));
     if (task->isCompleted()) {
       delete ui->taskList->takeItem(i);
-      if (const auto it = std::find(m_tasks.cbegin(), m_tasks.cend(), task);
-          it != m_tasks.cend())
+      auto it = std::find_if(m_tasks.begin(), m_tasks.end(),
+                             [task](const std::unique_ptr<Task> &ptr) { return ptr.get() == task; });
+      if (it != m_tasks.end()) {
+        it->release();
         m_tasks.erase(it);
+      }
       task->deleteLater();
     }
   }
@@ -333,11 +372,9 @@ void MainWindow::scheduleSave() {
 void MainWindow::saveTasks() const {
   QSettings settings("deepines", "ToDo");
   settings.beginWriteArray("tasks");
-  for (int i = 0; i < ui->taskList->count(); ++i) {
-    const auto item = ui->taskList->item(i);
-    const auto task = static_cast<Task *>(ui->taskList->itemWidget(item));
-    if (!task) continue;
-    settings.setArrayIndex(i);
+  int i = 0;
+  for (const auto &task : m_tasks) {
+    settings.setArrayIndex(i++);
     settings.setValue("name", task->name());
     settings.setValue("completed", task->isCompleted());
     settings.setValue("createdAt", task->createdAt().toString(Qt::ISODate));

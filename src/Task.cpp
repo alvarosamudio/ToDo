@@ -45,21 +45,21 @@ QString Task::formatRelativeTime() const {
   if (secs < 60) return QStringLiteral("ahora");
   if (secs < 3600) {
     const int mins = secs / 60;
-    return QString("hace %1 min").arg(mins);
+    return tr("hace %1 min").arg(mins);
   }
   if (secs < 86400) {
     const int hours = secs / 3600;
-    return QString("hace %1 h").arg(hours);
+    return tr("hace %1 h").arg(hours);
   }
   const int days = secs / 86400;
-  if (days == 1) return QStringLiteral("ayer");
-  if (days < 30) return QString("hace %1 d").arg(days);
+  if (days == 1) return tr("ayer");
+  if (days < 30) return tr("hace %1 d").arg(days);
   if (days < 365) {
     const int months = days / 30;
-    return QString("hace %1 %2").arg(months).arg(months == 1 ? "mes" : "meses");
+    return tr("hace %1 %2").arg(months).arg(months == 1 ? tr("mes") : tr("meses"));
   }
   const int years = days / 365;
-  return QString("hace %1 %2").arg(years).arg(years == 1 ? "año" : "años");
+  return tr("hace %1 %2").arg(years).arg(years == 1 ? tr("año") : tr("años"));
 }
 
 void Task::setCompleted(bool completed) {
@@ -69,6 +69,10 @@ void Task::setCompleted(bool completed) {
   auto font(ui->checkBox->font());
   font.setStrikeOut(completed);
   ui->checkBox->setFont(font);
+}
+
+void Task::updateDateLabel() {
+  ui->dateLabel->setText(formatRelativeTime());
 }
 
 void Task::rename() {
