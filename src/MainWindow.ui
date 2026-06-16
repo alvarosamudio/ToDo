@@ -16,46 +16,10 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <layout class="QHBoxLayout" name="toolbarLayout">
-      <item>
-       <widget class="QLabel" name="statusLabel">
-        <property name="text">
-         <string>Estatus: 0 ToDo / 0 Finalizadas</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="undoButton">
-        <property name="text">
-         <string>Deshacer</string>
-        </property>
-        <property name="visible">
-         <bool>false</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QProgressBar" name="progressBar">
-        <property name="minimum">
-         <number>0</number>
-        </property>
-        <property name="maximum">
-         <number>100</number>
-        </property>
-        <property name="value">
-         <number>0</number>
-        </property>
-        <property name="textVisible">
-         <bool>false</bool>
-        </property>
-        <property name="fixedWidth">
-         <number>80</number>
-        </property>
-        <property name="fixedHeight">
-         <number>14</number>
-        </property>
-       </widget>
-      </item>
+     <layout class="QHBoxLayout" name="topBar">
+      <property name="spacing">
+       <number>8</number>
+      </property>
       <item>
        <widget class="QLineEdit" name="searchEdit">
         <property name="placeholderText">
@@ -83,6 +47,52 @@
         </property>
         <property name="toolTip">
          <string>Eliminar todas las tareas finalizadas (Ctrl+Supr)</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="bottomBar">
+      <property name="spacing">
+       <number>8</number>
+      </property>
+      <item>
+       <widget class="QLabel" name="statusLabel">
+        <property name="text">
+         <string>Estatus: 0 ToDo / 0 Finalizadas</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QProgressBar" name="progressBar">
+        <property name="minimum">
+         <number>0</number>
+        </property>
+        <property name="maximum">
+         <number>100</number>
+        </property>
+        <property name="value">
+         <number>0</number>
+        </property>
+        <property name="textVisible">
+         <bool>true</bool>
+        </property>
+        <property name="fixedWidth">
+         <number>120</number>
+        </property>
+        <property name="fixedHeight">
+         <number>16</number>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="undoButton">
+        <property name="text">
+         <string>Deshacer</string>
+        </property>
+        <property name="visible">
+         <bool>false</bool>
         </property>
        </widget>
       </item>
@@ -123,8 +133,8 @@ Añade una con el botón o Ctrl+N</string>
       <property name="alignment">
        <set>Qt::AlignCenter</set>
       </property>
-      <property name="styleSheet">
-       <string notr="true">color: #888; font-size: 14px;</string>
+      <property name="margin">
+       <number>20</number>
       </property>
      </widget>
     </item>

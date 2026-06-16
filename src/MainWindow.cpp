@@ -22,6 +22,12 @@ MainWindow::MainWindow(QWidget *parent)
     : DMainWindow{parent}, ui{std::make_unique<Ui::MainWindow>()} {
   ui->setupUi(this);
 
+  ui->searchEdit->addAction(QIcon::fromTheme("edit-find"), QLineEdit::LeadingPosition);
+
+  ui->statsButton->setIcon(QIcon::fromTheme("office-chart-line"));
+  ui->clearCompletedButton->setIcon(QIcon::fromTheme("edit-clear-list"));
+  ui->addTaskButton->setIcon(QIcon::fromTheme("list-add"));
+
   m_saveTimer = new QTimer(this);
   m_saveTimer->setSingleShot(true);
   m_saveTimer->setInterval(1500);
@@ -238,7 +244,13 @@ void MainWindow::updateStatus() {
 }
 
 void MainWindow::showEmptyState() {
-  ui->emptyLabel->setVisible(m_tasks.empty());
+  const bool empty = m_tasks.empty();
+  ui->emptyLabel->setVisible(empty);
+  if (empty) {
+    auto pal = ui->emptyLabel->palette();
+    pal.setColor(QPalette::WindowText, pal.color(QPalette::PlaceholderText));
+    ui->emptyLabel->setPalette(pal);
+  }
 }
 
 void MainWindow::addTask() {

@@ -2,6 +2,7 @@
 #include "ui_Task.h"
 
 #include <QKeyEvent>
+#include <QIcon>
 
 Task::Task(const QString &name, QWidget *parent)
     : DWidget{parent}, ui{std::make_unique<Ui::Task>()}, m_createdAt{QDateTime::currentDateTime()} {
@@ -17,6 +18,14 @@ Task::Task(const QString &name, const QDateTime &createdAt, QWidget *parent)
 
 void Task::init() {
   ui->setupUi(this);
+
+  ui->editButton->setIcon(QIcon::fromTheme("document-edit"));
+  ui->removeButton->setIcon(QIcon::fromTheme("edit-delete"));
+
+  auto datePalette = ui->dateLabel->palette();
+  datePalette.setColor(QPalette::WindowText, datePalette.color(QPalette::PlaceholderText));
+  ui->dateLabel->setPalette(datePalette);
+
   connect(ui->editButton, &QPushButton::clicked, this, &Task::rename);
   connect(ui->removeButton, &QPushButton::clicked,
           [this]() { emit removed(this); });
