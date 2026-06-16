@@ -9,7 +9,6 @@
 #include <QJsonObject>
 #include <QIcon>
 #include <QMenu>
-#include <QMessageBox>
 #include <QLineEdit>
 #include <QSettings>
 #include <QShortcut>
@@ -102,8 +101,13 @@ void MainWindow::exportTasks() const {
   if (file.open(QIODevice::WriteOnly)) {
     file.write(doc.toJson(QJsonDocument::Indented));
   } else {
-    QMessageBox::warning(nullptr, tr("Error"),
-                         tr("No se pudo guardar el archivo."));
+    auto dialog = new DDialog(nullptr);
+    dialog->setTitle(tr("Error"));
+    dialog->setIcon(QIcon::fromTheme("dialog-error"));
+    dialog->setMessage(tr("No se pudo guardar el archivo."));
+    dialog->addButton(tr("Cerrar"));
+    connect(dialog, &DDialog::buttonClicked, dialog, &DDialog::deleteLater);
+    dialog->exec();
   }
 }
 
@@ -114,8 +118,13 @@ void MainWindow::importTasks() {
 
   QFile file(path);
   if (!file.open(QIODevice::ReadOnly)) {
-    QMessageBox::warning(this, tr("Error"),
-                         tr("No se pudo abrir el archivo."));
+    auto dialog = new DDialog(this);
+    dialog->setTitle(tr("Error"));
+    dialog->setIcon(QIcon::fromTheme("dialog-error"));
+    dialog->setMessage(tr("No se pudo abrir el archivo."));
+    dialog->addButton(tr("Cerrar"));
+    connect(dialog, &DDialog::buttonClicked, dialog, &DDialog::deleteLater);
+    dialog->exec();
     return;
   }
 
@@ -123,8 +132,13 @@ void MainWindow::importTasks() {
   file.close();
 
   if (doc.isNull() || !doc.isArray()) {
-    QMessageBox::warning(this, tr("Error"),
-                         tr("El archivo no contiene un JSON válido."));
+    auto dialog = new DDialog(this);
+    dialog->setTitle(tr("Error"));
+    dialog->setIcon(QIcon::fromTheme("dialog-error"));
+    dialog->setMessage(tr("El archivo no contiene un JSON válido."));
+    dialog->addButton(tr("Cerrar"));
+    connect(dialog, &DDialog::buttonClicked, dialog, &DDialog::deleteLater);
+    dialog->exec();
     return;
   }
 
@@ -148,8 +162,13 @@ void MainWindow::importTasks() {
   scheduleSave();
 
   if (imported > 0) {
-    QMessageBox::information(this, tr("Importar tareas"),
-                             tr("Se importaron %1 tareas.").arg(imported));
+    auto dialog = new DDialog(this);
+    dialog->setTitle(tr("Importar tareas"));
+    dialog->setIcon(QIcon::fromTheme("dialog-information"));
+    dialog->setMessage(tr("Se importaron %1 tareas.").arg(imported));
+    dialog->addButton(tr("Cerrar"));
+    connect(dialog, &DDialog::buttonClicked, dialog, &DDialog::deleteLater);
+    dialog->exec();
   }
 }
 
@@ -261,35 +280,44 @@ void MainWindow::removeTaskFromList(Task *task) {
 }
 
 void MainWindow::removeTask(Task *task) {
-  const auto result = QMessageBox::question(
-      this, tr("Eliminar tarea"),
-      tr("¿Estás seguro de eliminar la tarea '%1'?").arg(task->name()),
-      QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
-  if (result != QMessageBox::Yes) return;
+  auto dialog = new DDialog(this);
+  dialog->setTitle(tr("Eliminar tarea"));
+  dialog->setIcon(QIcon::fromTheme("dialog-warning"));
+  dialog->setMessage(tr("¿Estás seguro de eliminar la tarea '%1'?").arg(task->name()));
 
-  m_lastDeleted = std::make_unique<DeletedTaskInfo>(
-      DeletedTaskInfo{task->name(), task->isCompleted(), task->createdAt()});
+  dialog->addButton(tr("Cancelar"));
+  dialog->addButton(tr("Eliminar"), true);
 
-  removeTaskFromList(task);
+  connect(dialog, &DDialog::buttonClicked, this, [this, task, dialog](int index) {
+    dialog->deleteLater();
+    if (index != 1) return;
 
-  auto it = std::find_if(m_tasks.begin(), m_tasks.end(),
-                         [task](const std::unique_ptr<Task> &ptr) { return ptr.get() == task; });
-  if (it != m_tasks.end()) {
-    it->release();
-    m_tasks.erase(it);
-  }
-  task->deleteLater();
-  updateStatus();
-  showEmptyState();
-  scheduleSave();
+    m_lastDeleted = std::make_unique<DeletedTaskInfo>(
+        DeletedTaskInfo{task->name(), task->isCompleted(), task->createdAt()});
 
-  ui->undoButton->setVisible(true);
-  QTimer::singleShot(5000, this, [this]() {
-    if (ui->undoButton->isVisible()) {
-      ui->undoButton->setVisible(false);
-      m_lastDeleted.reset();
+    removeTaskFromList(task);
+
+    auto it = std::find_if(m_tasks.begin(), m_tasks.end(),
+                           [task](const std::unique_ptr<Task> &ptr) { return ptr.get() == task; });
+    if (it != m_tasks.end()) {
+      it->release();
+      m_tasks.erase(it);
     }
+    task->deleteLater();
+    updateStatus();
+    showEmptyState();
+    scheduleSave();
+
+    ui->undoButton->setVisible(true);
+    QTimer::singleShot(5000, this, [this]() {
+      if (ui->undoButton->isVisible()) {
+        ui->undoButton->setVisible(false);
+        m_lastDeleted.reset();
+      }
+    });
   });
+
+  dialog->exec();
 }
 
 void MainWindow::undoDelete() {
@@ -323,29 +351,38 @@ void MainWindow::clearCompleted() {
                    [](const std::unique_ptr<Task> &t) { return t->isCompleted(); }))
     return;
 
-  const auto result = QMessageBox::question(
-      this, tr("Limpiar tareas"),
-      tr("¿Eliminar todas las tareas finalizadas?"),
-      QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
-  if (result != QMessageBox::Yes) return;
+  auto dialog = new DDialog(this);
+  dialog->setTitle(tr("Limpiar tareas"));
+  dialog->setIcon(QIcon::fromTheme("dialog-warning"));
+  dialog->setMessage(tr("¿Eliminar todas las tareas finalizadas?"));
 
-  for (int i = ui->taskList->count() - 1; i >= 0; --i) {
-    const auto item = ui->taskList->item(i);
-    const auto task = static_cast<Task *>(ui->taskList->itemWidget(item));
-    if (task->isCompleted()) {
-      delete ui->taskList->takeItem(i);
-      auto it = std::find_if(m_tasks.begin(), m_tasks.end(),
-                             [task](const std::unique_ptr<Task> &ptr) { return ptr.get() == task; });
-      if (it != m_tasks.end()) {
-        it->release();
-        m_tasks.erase(it);
+  dialog->addButton(tr("Cancelar"));
+  dialog->addButton(tr("Eliminar"), true);
+
+  connect(dialog, &DDialog::buttonClicked, this, [this, dialog](int index) {
+    dialog->deleteLater();
+    if (index != 1) return;
+
+    for (int i = ui->taskList->count() - 1; i >= 0; --i) {
+      const auto item = ui->taskList->item(i);
+      const auto task = static_cast<Task *>(ui->taskList->itemWidget(item));
+      if (task->isCompleted()) {
+        delete ui->taskList->takeItem(i);
+        auto it = std::find_if(m_tasks.begin(), m_tasks.end(),
+                               [task](const std::unique_ptr<Task> &ptr) { return ptr.get() == task; });
+        if (it != m_tasks.end()) {
+          it->release();
+          m_tasks.erase(it);
+        }
+        task->deleteLater();
       }
-      task->deleteLater();
     }
-  }
-  updateStatus();
-  showEmptyState();
-  scheduleSave();
+    updateStatus();
+    showEmptyState();
+    scheduleSave();
+  });
+
+  dialog->exec();
 }
 
 void MainWindow::showStats() {
