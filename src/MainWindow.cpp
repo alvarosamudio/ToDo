@@ -10,7 +10,7 @@
 #include <QIcon>
 #include <QMenu>
 #include <QMessageBox>
-#include <QInputDialog>
+#include <QLineEdit>
 #include <QSettings>
 #include <QShortcut>
 #include <QListWidgetItem>
@@ -223,17 +223,31 @@ void MainWindow::showEmptyState() {
 }
 
 void MainWindow::addTask() {
-  bool isOk{};
-  const auto name = QInputDialog::getText(
-      this, tr("Añadir tarea"), tr("Nombre de la tarea"),
-      QLineEdit::Normal, tr("Tarea sin título"), &isOk);
-  if (isOk && !name.isEmpty()) {
-    qDebug() << "Añadiendo tarea nueva";
-    createTask(name, QDateTime::currentDateTime(), false);
-    updateStatus();
-    showEmptyState();
-    scheduleSave();
-  }
+  auto dialog = new DDialog(this);
+  dialog->setTitle(tr("Añadir tarea"));
+  dialog->setIcon(QIcon::fromTheme("list-add"));
+
+  auto edit = new QLineEdit(dialog);
+  edit->setPlaceholderText(tr("Nombre de la tarea"));
+  edit->setText(tr("Tarea sin título"));
+  edit->selectAll();
+  dialog->addContent(edit);
+
+  dialog->addButton(tr("Cancelar"));
+  dialog->addButton(tr("Añadir"), true);
+
+  connect(dialog, &DDialog::buttonClicked, this, [this, dialog, edit](int index) {
+    if (index == 1 && !edit->text().isEmpty()) {
+      createTask(edit->text(), QDateTime::currentDateTime(), false);
+      updateStatus();
+      showEmptyState();
+      scheduleSave();
+    }
+    dialog->deleteLater();
+  });
+
+  edit->setFocus();
+  dialog->exec();
 }
 
 void MainWindow::removeTaskFromList(Task *task) {
