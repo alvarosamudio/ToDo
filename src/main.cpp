@@ -21,6 +21,7 @@ int main(int argc, char *argv[]) {
   DAboutDialog dialog;
   dialog.setWindowTitle("Acerca de ToDo");
   dialog.setProductName("ToDo");
+  dialog.setProductIcon(QIcon("://todo-icon.svg"));
   dialog.setVersion(DApplication::buildVersion("Version 1.0"));
   dialog.setDescription(
       QStringLiteral(
