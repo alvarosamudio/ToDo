@@ -18,6 +18,8 @@ class Task : public DWidget {
 public:
   explicit Task(const QString &name, QWidget *parent = nullptr);
   Task(const QString &name, const QDateTime &createdAt, QWidget *parent = nullptr);
+  Task(const QString &name, const QDateTime &createdAt, const QDateTime &reminderAt,
+       bool notified = false, QWidget *parent = nullptr);
   ~Task();
 
   void setName(const QString &name);
@@ -27,6 +29,13 @@ public:
   QDateTime createdAt() const;
   QString formatRelativeTime() const;
   void updateDateLabel();
+
+  void setReminderAt(const QDateTime &dt);
+  QDateTime reminderAt() const;
+  bool hasReminder() const;
+  bool isNotified() const;
+  void setNotified(bool notified);
+  void updateReminderLabel();
 
 public slots:
   void rename();
@@ -45,6 +54,8 @@ private:
   void init();
   std::unique_ptr<Ui::Task> ui;
   QDateTime m_createdAt;
+  QDateTime m_reminderAt;
+  bool m_notified = false;
 };
 
 #endif // TASK_H

@@ -1,5 +1,6 @@
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
+#include "NotificationManager.h"
 #include <QCloseEvent>
 #include <QDebug>
 #include <QFile>
@@ -10,6 +11,8 @@
 #include <QIcon>
 #include <QMenu>
 #include <QLineEdit>
+#include <QCheckBox>
+#include <QDateTimeEdit>
 #include <QSettings>
 #include <QShortcut>
 #include <QListWidgetItem>
@@ -32,6 +35,11 @@ MainWindow::MainWindow(QWidget *parent)
   m_saveTimer->setSingleShot(true);
   m_saveTimer->setInterval(1500);
   connect(m_saveTimer, &QTimer::timeout, this, [this]() { saveTasks(); });
+
+  m_reminderTimer = new QTimer(this);
+  m_reminderTimer->setInterval(30000);
+  connect(m_reminderTimer, &QTimer::timeout, this, &MainWindow::checkReminders);
+  m_reminderTimer->start();
 
   connect(ui->addTaskButton, &QPushButton::clicked, this, &MainWindow::addTask);
   connect(ui->searchEdit, &QLineEdit::textChanged, this, &MainWindow::filterTasks);
@@ -99,6 +107,10 @@ void MainWindow::exportTasks() const {
     obj["name"] = task->name();
     obj["completed"] = task->isCompleted();
     obj["createdAt"] = task->createdAt().toString(Qt::ISODate);
+    if (task->hasReminder()) {
+      obj["reminderAt"] = task->reminderAt().toString(Qt::ISODate);
+    }
+    obj["notified"] = task->isNotified();
     arr.append(obj);
   }
 
@@ -159,7 +171,10 @@ void MainWindow::importTasks() {
     auto createdAt = QDateTime::fromString(obj["createdAt"].toString(), Qt::ISODate);
     if (!createdAt.isValid()) createdAt = QDateTime::currentDateTime();
 
-    createTask(name, createdAt, obj["completed"].toBool());
+    auto reminderAt = QDateTime::fromString(obj["reminderAt"].toString(), Qt::ISODate);
+    const auto notified = obj["notified"].toBool();
+
+    createTask(name, createdAt, obj["completed"].toBool(), reminderAt, notified);
     ++imported;
   }
 
@@ -180,7 +195,13 @@ void MainWindow::importTasks() {
 
 Task *MainWindow::createTask(const QString &name, const QDateTime &createdAt,
                               bool completed) {
-  auto task = std::make_unique<Task>(name, createdAt);
+  return createTask(name, createdAt, completed, QDateTime(), false);
+}
+
+Task *MainWindow::createTask(const QString &name, const QDateTime &createdAt,
+                              bool completed, const QDateTime &reminderAt,
+                              bool notified) {
+  auto task = std::make_unique<Task>(name, createdAt, reminderAt, notified);
   Task *taskPtr = task.get();
   connect(taskPtr, &Task::removed, this, &MainWindow::removeTask);
   connect(taskPtr, &Task::statusChanged, this, &MainWindow::taskStatusChanged);
@@ -191,12 +212,14 @@ Task *MainWindow::createTask(const QString &name, const QDateTime &createdAt,
   ui->taskList->setItemWidget(item, taskPtr);
   taskPtr->setCompleted(completed);
   taskPtr->updateDateLabel();
+  taskPtr->updateReminderLabel();
   m_tasks.push_back(std::move(task));
   return taskPtr;
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
   m_saveTimer->stop();
+  m_reminderTimer->stop();
   saveTasks();
   DMainWindow::closeEvent(event);
 }
@@ -264,15 +287,33 @@ void MainWindow::addTask() {
   edit->selectAll();
   dialog->addContent(edit);
 
+  auto reminderCheck = new QCheckBox(tr("Agregar recordatorio"), dialog);
+  dialog->addContent(reminderCheck);
+
+  auto dateTimeEdit = new QDateTimeEdit(QDateTime::currentDateTime().addSecs(3600), dialog);
+  dateTimeEdit->setDisplayFormat("dd/MM/yyyy HH:mm");
+  dateTimeEdit->setCalendarPopup(true);
+  dateTimeEdit->setVisible(false);
+  dialog->addContent(dateTimeEdit);
+
+  connect(reminderCheck, &QCheckBox::toggled, dateTimeEdit, &QWidget::setVisible);
+
   dialog->addButton(tr("Cancelar"));
   dialog->addButton(tr("Añadir"), true);
 
-  connect(dialog, &DDialog::buttonClicked, this, [this, dialog, edit](int index) {
+  connect(dialog, &DDialog::buttonClicked, this,
+          [this, dialog, edit, reminderCheck, dateTimeEdit](int index) {
     if (index == 1 && !edit->text().isEmpty()) {
-      createTask(edit->text(), QDateTime::currentDateTime(), false);
+      const QDateTime reminder = reminderCheck->isChecked()
+          ? dateTimeEdit->dateTime()
+          : QDateTime();
+      auto *task = createTask(edit->text(), QDateTime::currentDateTime(), false,
+                              reminder);
+      Q_UNUSED(task);
       updateStatus();
       showEmptyState();
       scheduleSave();
+      NotificationManager::send(tr("Tarea creada"), edit->text());
     }
     dialog->deleteLater();
   });
@@ -306,6 +347,8 @@ void MainWindow::removeTask(Task *task) {
 
     m_lastDeleted = std::make_unique<DeletedTaskInfo>(
         DeletedTaskInfo{task->name(), task->isCompleted(), task->createdAt()});
+
+    NotificationManager::send(tr("Tarea eliminada"), task->name());
 
     removeTaskFromList(task);
 
@@ -344,7 +387,10 @@ void MainWindow::undoDelete() {
   scheduleSave();
 }
 
-void MainWindow::taskStatusChanged(Task *) {
+void MainWindow::taskStatusChanged(Task *task) {
+  if (task->isCompleted()) {
+    NotificationManager::send(tr("Tarea completada"), task->name());
+  }
   updateStatus();
   scheduleSave();
 }
@@ -428,6 +474,21 @@ void MainWindow::showStats() {
   dialog->deleteLater();
 }
 
+void MainWindow::checkReminders() {
+  const auto now = QDateTime::currentDateTime();
+  bool changed = false;
+  for (const auto &task : m_tasks) {
+    if (task->hasReminder() && !task->isNotified() &&
+        task->reminderAt() <= now && !task->isCompleted()) {
+      task->setNotified(true);
+      task->updateReminderLabel();
+      NotificationManager::send(tr("Recordatorio"), task->name());
+      changed = true;
+    }
+  }
+  if (changed) scheduleSave();
+}
+
 void MainWindow::scheduleSave() {
   m_saveTimer->start();
 }
@@ -441,6 +502,10 @@ void MainWindow::saveTasks() const {
     settings.setValue("name", task->name());
     settings.setValue("completed", task->isCompleted());
     settings.setValue("createdAt", task->createdAt().toString(Qt::ISODate));
+    if (task->hasReminder()) {
+      settings.setValue("reminderAt", task->reminderAt().toString(Qt::ISODate));
+    }
+    settings.setValue("notified", task->isNotified());
   }
   settings.endArray();
 }
@@ -456,8 +521,12 @@ void MainWindow::loadTasks() {
         settings.value("createdAt").toString(), Qt::ISODate);
     if (name.isEmpty()) continue;
 
+    const auto reminderAt = QDateTime::fromString(
+        settings.value("reminderAt").toString(), Qt::ISODate);
+    const auto notified = settings.value("notified", false).toBool();
+
     createTask(name, createdAt.isValid() ? createdAt : QDateTime::currentDateTime(),
-               completed);
+               completed, reminderAt, notified);
   }
   settings.endArray();
 }

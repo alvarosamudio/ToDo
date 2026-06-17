@@ -16,6 +16,15 @@ Task::Task(const QString &name, const QDateTime &createdAt, QWidget *parent)
   setName(name);
 }
 
+Task::Task(const QString &name, const QDateTime &createdAt, const QDateTime &reminderAt,
+           bool notified, QWidget *parent)
+    : DWidget{parent}, ui{std::make_unique<Ui::Task>()}, m_createdAt{createdAt},
+      m_reminderAt{reminderAt}, m_notified{notified} {
+  init();
+  setName(name);
+  updateReminderLabel();
+}
+
 void Task::init() {
   ui->setupUi(this);
 
@@ -82,6 +91,41 @@ void Task::setCompleted(bool completed) {
 
 void Task::updateDateLabel() {
   ui->dateLabel->setText(formatRelativeTime());
+}
+
+void Task::setReminderAt(const QDateTime &dt) {
+  m_reminderAt = dt;
+  if (dt.isValid()) m_notified = false;
+  updateReminderLabel();
+}
+
+QDateTime Task::reminderAt() const { return m_reminderAt; }
+
+bool Task::hasReminder() const { return m_reminderAt.isValid(); }
+
+bool Task::isNotified() const { return m_notified; }
+
+void Task::setNotified(bool notified) { m_notified = notified; }
+
+void Task::updateReminderLabel() {
+  if (m_reminderAt.isValid()) {
+    ui->reminderLabel->setVisible(true);
+    const auto now = QDateTime::currentDateTime();
+    const auto secs = now.secsTo(m_reminderAt);
+    if (secs < 0) {
+      ui->reminderLabel->setText(tr("⏰ vencido"));
+    } else if (secs < 60) {
+      ui->reminderLabel->setText(tr("⏰ ahora"));
+    } else if (secs < 3600) {
+      ui->reminderLabel->setText(tr("⏰ en %1 min").arg(secs / 60));
+    } else if (secs < 86400) {
+      ui->reminderLabel->setText(tr("⏰ en %1 h").arg(secs / 3600));
+    } else {
+      ui->reminderLabel->setText(tr("⏰ en %1 d").arg(secs / 86400));
+    }
+  } else {
+    ui->reminderLabel->setVisible(false);
+  }
 }
 
 void Task::rename() {

@@ -43,13 +43,23 @@
          </property>
         </widget>
        </item>
-       <item>
-        <widget class="QLabel" name="dateLabel">
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
-       </item>
+        <item>
+         <widget class="QLabel" name="dateLabel">
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="reminderLabel">
+          <property name="text">
+           <string/>
+          </property>
+          <property name="visible">
+           <bool>false</bool>
+          </property>
+         </widget>
+        </item>
       </layout>
      </widget>
      <widget class="QWidget" name="editPage">

@@ -49,13 +49,18 @@ private:
   void exportTasks() const;
   void importTasks();
   void scheduleSave();
+  void checkReminders();
   Task *createTask(const QString &name, const QDateTime &createdAt,
                    bool completed);
+  Task *createTask(const QString &name, const QDateTime &createdAt,
+                   bool completed, const QDateTime &reminderAt,
+                   bool notified = false);
   void removeTaskFromList(Task *task);
 
   std::unique_ptr<Ui::MainWindow> ui;
   std::vector<std::unique_ptr<Task>> m_tasks;
   QTimer *m_saveTimer;
+  QTimer *m_reminderTimer;
   std::unique_ptr<DeletedTaskInfo> m_lastDeleted;
 };
 
