@@ -1,4 +1,4 @@
-# ToDo v0.1
+# ToDo v2.0
 
 App de tareas de la comunidad deepin en Español. Construida con Qt6 y DTK para el escritorio Deepin.
 
@@ -67,7 +67,7 @@ make -j$(nproc)
 dpkg-buildpackage -us -uc
 
 # O instalar .deb pre-compilado
-sudo dpkg -i deepines-todo_0.1-1_amd64.deb
+sudo dpkg -i deepines-todo_2.0-1_amd64.deb
 sudo apt install -f
 ```
 
