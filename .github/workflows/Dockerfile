@@ -7,9 +7,10 @@ RUN apt-get update && \
         cmake \
         debhelper \
         fakeroot \
-        qt6-base-dev \
-        libdtk6widget-dev \
         pkg-config \
+        qt6-base-dev \
+        qt6-l10n-tools \
+        libdtk6widget-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
