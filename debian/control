@@ -4,7 +4,9 @@ Priority: optional
 Maintainer: Deepin Latin Code <alvarosamudio@protonmail.com>
 Build-Depends: debhelper-compat (= 13),
                cmake,
+               pkg-config,
                qt6-base-dev,
+               qt6-l10n-tools,
                libdtk6widget-dev
 Standards-Version: 4.6.2
 Homepage: https://deepinenespanol.org
