@@ -97,6 +97,31 @@
     </spacer>
    </item>
    <item>
+    <widget class="QPushButton" name="reminderButton">
+     <property name="toolTip">
+      <string>Editar recordatorio</string>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>16</width>
+       <height>16</height>
+      </size>
+     </property>
+     <property name="flat">
+      <bool>true</bool>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>28</width>
+       <height>28</height>
+      </size>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QPushButton" name="editButton">
      <property name="toolTip">
       <string>Editar nombre</string>

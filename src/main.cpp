@@ -11,10 +11,12 @@ int main(int argc, char *argv[]) {
 
   a.setProductName("ToDo");
   a.setApplicationName("ToDo");
+  a.setApplicationVersion(APP_VERSION);
 
+  // QTranslator::load(QLocale, ...) prueba "es_ES", luego "es", etc., así que
+  // locales como en_US o zh_CN encuentran ToDo_en.qm / ToDo_zh.qm.
   QTranslator translator;
-  const QString locale = QLocale::system().name();
-  if (translator.load(":/translations/ToDo_" + locale + ".qm")) {
+  if (translator.load(QLocale(), "ToDo", "_", ":/translations")) {
     a.installTranslator(&translator);
   }
 
@@ -22,7 +24,7 @@ int main(int argc, char *argv[]) {
   dialog.setWindowTitle("Acerca de ToDo");
   dialog.setProductName("ToDo");
   dialog.setProductIcon(QIcon("://todo-icon.svg"));
-  dialog.setVersion(DApplication::buildVersion("Version 1.0"));
+  dialog.setVersion(DApplication::buildVersion(APP_VERSION));
   dialog.setDescription(
       QStringLiteral(
           "<span style='font-size:8pt; font-weight:600;'>"

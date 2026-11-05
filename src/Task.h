@@ -45,6 +45,8 @@ public slots:
 signals:
   void removed(Task *task);
   void statusChanged(Task *task);
+  void renamed(Task *task);
+  void reminderRequested(Task *task);
 
 protected:
   void mouseDoubleClickEvent(QMouseEvent *event) override;
@@ -52,6 +54,8 @@ protected:
 
 private:
   void init();
+  void cancelEdit();
+  void applyStrikeOut(bool completed);
   std::unique_ptr<Ui::Task> ui;
   QDateTime m_createdAt;
   QDateTime m_reminderAt;

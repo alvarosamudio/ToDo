@@ -2,6 +2,7 @@
 #include "ui_MainWindow.h"
 #include "NotificationManager.h"
 #include <QCloseEvent>
+#include <algorithm>
 #include <QDebug>
 #include <QFile>
 #include <QFileDialog>
@@ -38,8 +39,19 @@ MainWindow::MainWindow(QWidget *parent)
 
   m_reminderTimer = new QTimer(this);
   m_reminderTimer->setInterval(30000);
-  connect(m_reminderTimer, &QTimer::timeout, this, &MainWindow::checkReminders);
+  connect(m_reminderTimer, &QTimer::timeout, this, [this]() {
+    checkReminders();
+    refreshTimeLabels();
+  });
   m_reminderTimer->start();
+
+  m_undoTimer = new QTimer(this);
+  m_undoTimer->setSingleShot(true);
+  m_undoTimer->setInterval(5000);
+  connect(m_undoTimer, &QTimer::timeout, this, [this]() {
+    ui->undoButton->setVisible(false);
+    m_lastDeleted.reset();
+  });
 
   connect(ui->addTaskButton, &QPushButton::clicked, this, &MainWindow::addTask);
   connect(ui->searchEdit, &QLineEdit::textChanged, this, &MainWindow::filterTasks);
@@ -66,6 +78,18 @@ MainWindow::MainWindow(QWidget *parent)
   loadTasks();
   updateStatus();
   showEmptyState();
+  // Avisar de recordatorios que vencieron mientras la app estaba cerrada.
+  QTimer::singleShot(0, this, &MainWindow::checkReminders);
+}
+
+void MainWindow::showMessage(const QString &title, const QString &message,
+                             const QString &icon) {
+  DDialog dialog(this);
+  dialog.setTitle(title);
+  dialog.setIcon(QIcon::fromTheme(icon));
+  dialog.setMessage(message);
+  dialog.addButton(tr("Cerrar"));
+  dialog.exec();
 }
 
 MainWindow::~MainWindow() = default;
@@ -96,9 +120,9 @@ void MainWindow::setupMenu() {
   }
 }
 
-void MainWindow::exportTasks() const {
+void MainWindow::exportTasks() {
   const auto path = QFileDialog::getSaveFileName(
-      nullptr, tr("Exportar tareas"), "tareas.json", tr("JSON (*.json)"));
+      this, tr("Exportar tareas"), "tareas.json", tr("JSON (*.json)"));
   if (path.isEmpty()) return;
 
   QJsonArray arr;
@@ -116,33 +140,20 @@ void MainWindow::exportTasks() const {
 
   QJsonDocument doc(arr);
   QFile file(path);
-  if (file.open(QIODevice::WriteOnly)) {
-    file.write(doc.toJson(QJsonDocument::Indented));
-  } else {
-    auto dialog = new DDialog(nullptr);
-    dialog->setTitle(tr("Error"));
-    dialog->setIcon(QIcon::fromTheme("dialog-error"));
-    dialog->setMessage(tr("No se pudo guardar el archivo."));
-    dialog->addButton(tr("Cerrar"));
-    connect(dialog, &DDialog::buttonClicked, dialog, &DDialog::deleteLater);
-    dialog->exec();
+  if (!file.open(QIODevice::WriteOnly) ||
+      file.write(doc.toJson(QJsonDocument::Indented)) < 0) {
+    showMessage(tr("Error"), tr("No se pudo guardar el archivo."), "dialog-error");
   }
 }
 
 void MainWindow::importTasks() {
   const auto path = QFileDialog::getOpenFileName(
-      nullptr, tr("Importar tareas"), "", tr("JSON (*.json)"));
+      this, tr("Importar tareas"), "", tr("JSON (*.json)"));
   if (path.isEmpty()) return;
 
   QFile file(path);
   if (!file.open(QIODevice::ReadOnly)) {
-    auto dialog = new DDialog(this);
-    dialog->setTitle(tr("Error"));
-    dialog->setIcon(QIcon::fromTheme("dialog-error"));
-    dialog->setMessage(tr("No se pudo abrir el archivo."));
-    dialog->addButton(tr("Cerrar"));
-    connect(dialog, &DDialog::buttonClicked, dialog, &DDialog::deleteLater);
-    dialog->exec();
+    showMessage(tr("Error"), tr("No se pudo abrir el archivo."), "dialog-error");
     return;
   }
 
@@ -150,13 +161,8 @@ void MainWindow::importTasks() {
   file.close();
 
   if (doc.isNull() || !doc.isArray()) {
-    auto dialog = new DDialog(this);
-    dialog->setTitle(tr("Error"));
-    dialog->setIcon(QIcon::fromTheme("dialog-error"));
-    dialog->setMessage(tr("El archivo no contiene un JSON válido."));
-    dialog->addButton(tr("Cerrar"));
-    connect(dialog, &DDialog::buttonClicked, dialog, &DDialog::deleteLater);
-    dialog->exec();
+    showMessage(tr("Error"), tr("El archivo no contiene un JSON válido."),
+                "dialog-error");
     return;
   }
 
@@ -165,7 +171,7 @@ void MainWindow::importTasks() {
   for (const auto &val : arr) {
     if (!val.isObject()) continue;
     const auto obj = val.toObject();
-    const auto name = obj["name"].toString();
+    const auto name = obj["name"].toString().trimmed();
     if (name.isEmpty()) continue;
 
     auto createdAt = QDateTime::fromString(obj["createdAt"].toString(), Qt::ISODate);
@@ -183,38 +189,52 @@ void MainWindow::importTasks() {
   scheduleSave();
 
   if (imported > 0) {
-    auto dialog = new DDialog(this);
-    dialog->setTitle(tr("Importar tareas"));
-    dialog->setIcon(QIcon::fromTheme("dialog-information"));
-    dialog->setMessage(tr("Se importaron %1 tareas.").arg(imported));
-    dialog->addButton(tr("Cerrar"));
-    connect(dialog, &DDialog::buttonClicked, dialog, &DDialog::deleteLater);
-    dialog->exec();
+    showMessage(tr("Importar tareas"), tr("Se importaron %1 tareas.").arg(imported),
+                "dialog-information");
   }
 }
 
 Task *MainWindow::createTask(const QString &name, const QDateTime &createdAt,
-                              bool completed) {
-  return createTask(name, createdAt, completed, QDateTime(), false);
-}
-
-Task *MainWindow::createTask(const QString &name, const QDateTime &createdAt,
                               bool completed, const QDateTime &reminderAt,
-                              bool notified) {
+                              bool notified, int row) {
   auto task = std::make_unique<Task>(name, createdAt, reminderAt, notified);
   Task *taskPtr = task.get();
   connect(taskPtr, &Task::removed, this, &MainWindow::removeTask);
   connect(taskPtr, &Task::statusChanged, this, &MainWindow::taskStatusChanged);
+  connect(taskPtr, &Task::reminderRequested, this, &MainWindow::editReminder);
+  connect(taskPtr, &Task::renamed, this, [this](Task *t) {
+    for (int i = 0; i < ui->taskList->count(); ++i) {
+      const auto item = ui->taskList->item(i);
+      if (ui->taskList->itemWidget(item) == t) applyFilter(item, t);
+    }
+    scheduleSave();
+  });
 
+  if (row < 0 || row > ui->taskList->count()) row = ui->taskList->count();
   const auto item = new QListWidgetItem();
   item->setSizeHint(QSize(0, 40));
-  ui->taskList->addItem(item);
+  ui->taskList->insertItem(row, item);
   ui->taskList->setItemWidget(item, taskPtr);
   taskPtr->setCompleted(completed);
   taskPtr->updateDateLabel();
   taskPtr->updateReminderLabel();
-  m_tasks.push_back(std::move(task));
+  applyFilter(item, taskPtr);
+  m_tasks.insert(m_tasks.begin() + std::min<size_t>(row, m_tasks.size()),
+                 std::move(task));
   return taskPtr;
+}
+
+void MainWindow::applyFilter(QListWidgetItem *item, Task *task) const {
+  const auto text = ui->searchEdit->text();
+  item->setHidden(!text.isEmpty() &&
+                  !task->name().contains(text, Qt::CaseInsensitive));
+}
+
+void MainWindow::refreshTimeLabels() {
+  for (const auto &task : m_tasks) {
+    task->updateDateLabel();
+    task->updateReminderLabel();
+  }
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
@@ -303,17 +323,16 @@ void MainWindow::addTask() {
 
   connect(dialog, &DDialog::buttonClicked, this,
           [this, dialog, edit, reminderCheck, dateTimeEdit](int index) {
-    if (index == 1 && !edit->text().isEmpty()) {
+    const auto name = edit->text().trimmed();
+    if (index == 1 && !name.isEmpty()) {
       const QDateTime reminder = reminderCheck->isChecked()
           ? dateTimeEdit->dateTime()
           : QDateTime();
-      auto *task = createTask(edit->text(), QDateTime::currentDateTime(), false,
-                              reminder);
-      Q_UNUSED(task);
+      createTask(name, QDateTime::currentDateTime(), false, reminder);
       updateStatus();
       showEmptyState();
       scheduleSave();
-      NotificationManager::send(tr("Tarea creada"), edit->text());
+      NotificationManager::send(tr("Tarea creada"), name);
     }
     dialog->deleteLater();
   });
@@ -322,14 +341,15 @@ void MainWindow::addTask() {
   dialog->exec();
 }
 
-void MainWindow::removeTaskFromList(Task *task) {
+int MainWindow::removeTaskFromList(Task *task) {
   for (int i = 0; i < ui->taskList->count(); ++i) {
     const auto item = ui->taskList->item(i);
     if (ui->taskList->itemWidget(item) == task) {
       delete ui->taskList->takeItem(i);
-      break;
+      return i;
     }
   }
+  return -1;
 }
 
 void MainWindow::removeTask(Task *task) {
@@ -345,12 +365,12 @@ void MainWindow::removeTask(Task *task) {
     dialog->deleteLater();
     if (index != 1) return;
 
-    m_lastDeleted = std::make_unique<DeletedTaskInfo>(
-        DeletedTaskInfo{task->name(), task->isCompleted(), task->createdAt()});
-
     NotificationManager::send(tr("Tarea eliminada"), task->name());
 
-    removeTaskFromList(task);
+    const int row = removeTaskFromList(task);
+    m_lastDeleted = std::make_unique<DeletedTaskInfo>(DeletedTaskInfo{
+        task->name(), task->isCompleted(), task->createdAt(),
+        task->reminderAt(), task->isNotified(), row});
 
     auto it = std::find_if(m_tasks.begin(), m_tasks.end(),
                            [task](const std::unique_ptr<Task> &ptr) { return ptr.get() == task; });
@@ -364,12 +384,7 @@ void MainWindow::removeTask(Task *task) {
     scheduleSave();
 
     ui->undoButton->setVisible(true);
-    QTimer::singleShot(5000, this, [this]() {
-      if (ui->undoButton->isVisible()) {
-        ui->undoButton->setVisible(false);
-        m_lastDeleted.reset();
-      }
-    });
+    m_undoTimer->start();  // reinicia la cuenta si ya había un deshacer pendiente
   });
 
   dialog->exec();
@@ -378,8 +393,10 @@ void MainWindow::removeTask(Task *task) {
 void MainWindow::undoDelete() {
   if (!m_lastDeleted) return;
 
+  m_undoTimer->stop();
   createTask(m_lastDeleted->name, m_lastDeleted->createdAt,
-             m_lastDeleted->completed);
+             m_lastDeleted->completed, m_lastDeleted->reminderAt,
+             m_lastDeleted->notified, m_lastDeleted->row);
   m_lastDeleted.reset();
   ui->undoButton->setVisible(false);
   updateStatus();
@@ -396,11 +413,10 @@ void MainWindow::taskStatusChanged(Task *task) {
 }
 
 void MainWindow::filterTasks(const QString &text) {
+  Q_UNUSED(text);
   for (int i = 0; i < ui->taskList->count(); ++i) {
     const auto item = ui->taskList->item(i);
-    const auto task = static_cast<Task *>(ui->taskList->itemWidget(item));
-    item->setHidden(!text.isEmpty() &&
-                    !task->name().contains(text, Qt::CaseInsensitive));
+    applyFilter(item, static_cast<Task *>(ui->taskList->itemWidget(item)));
   }
 }
 
@@ -456,7 +472,7 @@ void MainWindow::showStats() {
   const auto pending = total - completed;
 
   auto dialog = new DDialog(this);
-  dialog->setWindowTitle(tr("Estadísticas"));
+  dialog->setTitle(tr("Estadísticas"));
   dialog->setIcon(QIcon::fromTheme("office-chart-line"));
 
   QString msg;
@@ -495,6 +511,9 @@ void MainWindow::scheduleSave() {
 
 void MainWindow::saveTasks() const {
   QSettings settings("deepines", "ToDo");
+  // Borrar el array anterior: beginWriteArray no elimina claves viejas, así que
+  // un recordatorio quitado o tareas sobrantes reaparecerían al recargar.
+  settings.remove("tasks");
   settings.beginWriteArray("tasks");
   int i = 0;
   for (const auto &task : m_tasks) {
@@ -529,4 +548,40 @@ void MainWindow::loadTasks() {
                completed, reminderAt, notified);
   }
   settings.endArray();
+}
+
+void MainWindow::editReminder(Task *task) {
+  auto dialog = new DDialog(this);
+  dialog->setTitle(tr("Recordatorio"));
+  dialog->setIcon(QIcon::fromTheme("appointment-new"));
+  dialog->setMessage(task->name());
+
+  auto reminderCheck = new QCheckBox(tr("Agregar recordatorio"), dialog);
+  reminderCheck->setChecked(task->hasReminder());
+  dialog->addContent(reminderCheck);
+
+  const auto initial = task->hasReminder()
+      ? task->reminderAt()
+      : QDateTime::currentDateTime().addSecs(3600);
+  auto dateTimeEdit = new QDateTimeEdit(initial, dialog);
+  dateTimeEdit->setDisplayFormat("dd/MM/yyyy HH:mm");
+  dateTimeEdit->setCalendarPopup(true);
+  dateTimeEdit->setEnabled(task->hasReminder());
+  dialog->addContent(dateTimeEdit);
+  connect(reminderCheck, &QCheckBox::toggled, dateTimeEdit, &QWidget::setEnabled);
+
+  dialog->addButton(tr("Cancelar"));
+  dialog->addButton(tr("Guardar"), true);
+
+  connect(dialog, &DDialog::buttonClicked, this,
+          [this, task, dialog, reminderCheck, dateTimeEdit](int index) {
+    dialog->deleteLater();
+    if (index != 1) return;
+    task->setReminderAt(reminderCheck->isChecked() ? dateTimeEdit->dateTime()
+                                                   : QDateTime());
+    scheduleSave();
+    checkReminders();
+  });
+
+  dialog->exec();
 }

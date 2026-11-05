@@ -4,6 +4,7 @@
 #include <DMainWindow>
 #include <QDateTime>
 #include <QTimer>
+#include <QListWidgetItem>
 #include <memory>
 #include <vector>
 #include "Task.h"
@@ -18,6 +19,9 @@ struct DeletedTaskInfo {
   QString name;
   bool completed;
   QDateTime createdAt;
+  QDateTime reminderAt;
+  bool notified;
+  int row;
 };
 
 class MainWindow : public DMainWindow {
@@ -35,6 +39,7 @@ public slots:
   void clearCompleted();
   void showStats();
   void undoDelete();
+  void editReminder(Task *task);
 
 protected:
   void closeEvent(QCloseEvent *event) override;
@@ -46,21 +51,24 @@ private:
   void updateStatus();
   void syncTasksFromList();
   void setupMenu();
-  void exportTasks() const;
+  void exportTasks();
   void importTasks();
   void scheduleSave();
   void checkReminders();
+  void refreshTimeLabels();
+  void showMessage(const QString &title, const QString &message,
+                   const QString &icon);
   Task *createTask(const QString &name, const QDateTime &createdAt,
-                   bool completed);
-  Task *createTask(const QString &name, const QDateTime &createdAt,
-                   bool completed, const QDateTime &reminderAt,
-                   bool notified = false);
-  void removeTaskFromList(Task *task);
+                   bool completed, const QDateTime &reminderAt = QDateTime(),
+                   bool notified = false, int row = -1);
+  void applyFilter(QListWidgetItem *item, Task *task) const;
+  int removeTaskFromList(Task *task);
 
   std::unique_ptr<Ui::MainWindow> ui;
   std::vector<std::unique_ptr<Task>> m_tasks;
   QTimer *m_saveTimer;
   QTimer *m_reminderTimer;
+  QTimer *m_undoTimer;
   std::unique_ptr<DeletedTaskInfo> m_lastDeleted;
 };
 

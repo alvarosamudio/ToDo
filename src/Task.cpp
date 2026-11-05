@@ -30,6 +30,8 @@ void Task::init() {
 
   ui->editButton->setIcon(QIcon::fromTheme("document-edit"));
   ui->removeButton->setIcon(QIcon::fromTheme("edit-delete"));
+  ui->reminderButton->setIcon(QIcon::fromTheme("appointment-new",
+                                               QIcon::fromTheme("alarm-symbolic")));
 
   auto datePalette = ui->dateLabel->palette();
   datePalette.setColor(QPalette::WindowText, datePalette.color(QPalette::PlaceholderText));
@@ -38,8 +40,11 @@ void Task::init() {
   connect(ui->editButton, &QPushButton::clicked, this, &Task::rename);
   connect(ui->removeButton, &QPushButton::clicked,
           [this]() { emit removed(this); });
+  connect(ui->reminderButton, &QPushButton::clicked,
+          [this]() { emit reminderRequested(this); });
   connect(ui->checkBox, &QCheckBox::toggled, this, &Task::checked);
-  connect(ui->editBox, &QLineEdit::returnPressed, this, &Task::finishEdit);
+  // editingFinished cubre Enter y pérdida de foco: el texto nunca queda a medias.
+  connect(ui->editBox, &QLineEdit::editingFinished, this, &Task::finishEdit);
   ui->editBox->installEventFilter(this);
 }
 
@@ -84,6 +89,10 @@ void Task::setCompleted(bool completed) {
   const auto wasBlocked = ui->checkBox->blockSignals(true);
   ui->checkBox->setChecked(completed);
   ui->checkBox->blockSignals(wasBlocked);
+  applyStrikeOut(completed);
+}
+
+void Task::applyStrikeOut(bool completed) {
   auto font(ui->checkBox->font());
   font.setStrikeOut(completed);
   ui->checkBox->setFont(font);
@@ -136,16 +145,24 @@ void Task::rename() {
 }
 
 void Task::finishEdit() {
-  if (!ui->editBox->text().isEmpty()) {
-    setName(ui->editBox->text());
+  if (ui->stackedWidget->currentIndex() != 1) return;
+  ui->stackedWidget->setCurrentIndex(0);
+  const auto newName = ui->editBox->text().trimmed();
+  if (!newName.isEmpty() && newName != name()) {
+    setName(newName);
+    emit renamed(this);
   }
+}
+
+void Task::cancelEdit() {
+  // Restaurar el texto antes de cambiar de página: al perder el foco se
+  // dispara editingFinished y no debe aplicar el texto descartado.
+  ui->editBox->setText(name());
   ui->stackedWidget->setCurrentIndex(0);
 }
 
 void Task::checked(bool isChecked) {
-  auto font(ui->checkBox->font());
-  font.setStrikeOut(isChecked);
-  ui->checkBox->setFont(font);
+  applyStrikeOut(isChecked);
   emit statusChanged(this);
 }
 
@@ -157,11 +174,20 @@ void Task::mouseDoubleClickEvent(QMouseEvent *event) {
 }
 
 bool Task::eventFilter(QObject *obj, QEvent *event) {
-  if (obj == ui->editBox && event->type() == QEvent::KeyPress) {
-    const auto keyEvent = static_cast<QKeyEvent *>(event);
-    if (keyEvent->key() == Qt::Key_Escape) {
-      ui->stackedWidget->setCurrentIndex(0);
-      return true;
+  if (obj == ui->editBox) {
+    const auto type = event->type();
+    if (type == QEvent::ShortcutOverride || type == QEvent::KeyPress) {
+      const auto keyEvent = static_cast<QKeyEvent *>(event);
+      if (keyEvent->key() == Qt::Key_Escape) {
+        // Aceptar el ShortcutOverride evita que el atajo global Escape
+        // de la ventana se trague la tecla mientras se edita.
+        if (type == QEvent::ShortcutOverride) {
+          event->accept();
+        } else {
+          cancelEdit();
+        }
+        return true;
+      }
     }
   }
   return QWidget::eventFilter(obj, event);

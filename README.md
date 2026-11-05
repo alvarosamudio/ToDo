@@ -12,7 +12,7 @@ App de tareas de la comunidad deepin en Español. Construida con Qt6 y DTK para 
 - **Marcar tareas como completadas** con tachado visual
 - **Drag & drop** para reordenar tareas
 - **Búsqueda y filtro** en tiempo real por nombre
-- **Recordatorios** con fecha/hora — notificación del escritorio al vencimiento
+- **Recordatorios** con fecha/hora — notificación del escritorio al vencimiento; se pueden añadir, cambiar o quitar en tareas existentes (botón de alarma)
 - **Notificaciones de acciones** al crear, completar o eliminar tareas
 - **28 idiomas** (i18n): español, inglés, chino, francés, árabe, portugués, ruso, japonés, alemán, italiano, coreano, tailandés, neerlandés, catalán, polaco, turco, ucraniano, bengalí, indonesio, urdu, hausa, swahili, telugu, marathi, hindi, persa, chino tradicional, yoruba
 - **Diálogos nativos DTK** (DDialog) para todas las operaciones
@@ -27,7 +27,7 @@ App de tareas de la comunidad deepin en Español. Construida con Qt6 y DTK para 
   - `Ctrl+T` — Estadísticas
   - `Escape` — Limpiar búsqueda
 - **Auto-guardado** con debounce (1.5s) — nunca pierdes datos
-- **Deshacer eliminar** — la última tarea eliminada se puede restaurar (5 segundos)
+- **Deshacer eliminar** — la última tarea eliminada se restaura en su posición original, con su recordatorio (5 segundos)
 - **Exportar/Importar JSON** con soporte de recordatorios
 - **Almacenamiento persistente** con QSettings
 - **Fecha de creación** con tiempo relativo ("hace 5 min", "ayer")
