@@ -1,16 +1,63 @@
 name: Build and publish .deb
 
+# Release automatica: en cada push a main/master se lee la version de
+# debian/changelog. Si la etiqueta v<version> aun no existe, se compilan los
+# .deb de todas las arquitecturas y se publica la release con esa etiqueta.
+# Para sacar una version nueva basta con anadir una entrada al changelog.
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [main, master]
+    tags: ['v*']
   workflow_dispatch:
 
 permissions:
   contents: write
 
+concurrency:
+  group: publish-${{ github.repository }}
+  cancel-in-progress: false
+
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      tag: ${{ steps.v.outputs.tag }}
+      release: ${{ steps.v.outputs.release }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Read version from debian/changelog
+        id: v
+        run: |
+          # "pkg (1:1.2.3-1) unstable; ..." -> 1.2.3 (sin epoch ni revision debian)
+          full=$(sed -n '1s/^[^ ]* (\([^)]*\)).*/\1/p' debian/changelog)
+          version=${full#*:}
+          version=${version%-*}
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            tag="${GITHUB_REF_NAME}"
+            release=true
+          else
+            tag="v${version}"
+            if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+              # La etiqueta ya existe: en push normal no se publica nada;
+              # lanzado a mano se recompila y se actualiza esa release.
+              if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then release=true; else release=false; fi
+            else
+              release=true
+            fi
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "release=${release}" >> "$GITHUB_OUTPUT"
+          echo "Version: ${version} | tag: ${tag} | publicar: ${release}"
+
   build-deb:
+    needs: check
+    if: needs.check.outputs.release == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -34,53 +81,144 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        if: matrix.arch != 'amd64'
+        uses: docker/setup-qemu-action@v4.2.0
         with:
           platforms: ${{ matrix.platform }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@v4.2.0
 
       - name: Build Docker image and package .deb
         run: |
+          mkdir -p dist
           docker buildx build \
             --platform ${{ matrix.platform }} \
             --build-arg BASE_IMAGE=${{ matrix.base_image }} \
-            --load \
-            -t todo-builder:${{ matrix.arch }} \
+            --output type=local,dest=dist \
+            --cache-from type=gha,scope=${{ matrix.arch }} \
+            --cache-to type=gha,mode=max,scope=${{ matrix.arch }} \
+            -t deepines-todo-builder:${{ matrix.arch }} \
             -f .github/workflows/Dockerfile .
 
-      - name: Extract .deb from Docker image
-        run: |
-          docker create --name extractor-${{ matrix.arch }} --platform ${{ matrix.platform }} todo-builder:${{ matrix.arch }}
-          mkdir -p dist
-          docker cp extractor-${{ matrix.arch }}:/output/. ./dist/
-          docker rm extractor-${{ matrix.arch }}
-
-      - name: Rename .deb with architecture suffix
+      - name: Locate .deb
         id: deb-info
         run: |
-          deb_file=$(ls dist/*.deb | head -n 1)
-          base=$(basename "$deb_file" _amd64.deb)
-          base=$(basename "$base" _arm64.deb)
-          base=$(basename "$base" _riscv64.deb)
-          base=$(basename "$base" _loong64.deb)
-          base=$(basename "$base" .deb)
-          new_name="${base}_${{ matrix.arch }}.deb"
-          mv "$deb_file" "dist/$new_name"
-          echo "path=dist/$new_name" >> $GITHUB_OUTPUT
-          echo "name=$new_name" >> $GITHUB_OUTPUT
-          echo "Found: dist/$new_name"
+          deb_file=$(ls dist/*.deb | grep -v dbgsym | head -n 1)
+          echo "path=$deb_file" >> "$GITHUB_OUTPUT"
+          echo "name=${deb_file##*/}" >> "$GITHUB_OUTPUT"
+          echo "Found: ${deb_file##*/}"
 
       - name: Upload .deb as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
-          name: ${{ steps.deb-info.outputs.name }}
+          name: deb-${{ matrix.arch }}
           path: ${{ steps.deb-info.outputs.path }}
+          if-no-files-found: error
 
-      - name: Upload to Release
-        uses: softprops/action-gh-release@v3
-        if: startsWith(github.ref, 'refs/tags/')
+  # Paquete linyaps (.uab) a partir del .deb ya compilado. Solo hay runners
+  # nativos para amd64 y arm64 (ll-builder no funciona en Docker ni con QEMU).
+  # Si falla, la release se publica igualmente con los .deb.
+  build-uab:
+    needs: [check, build-deb]
+    if: needs.check.outputs.release == 'true'
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Download .deb
+        uses: actions/download-artifact@v5
         with:
-          files: ${{ steps.deb-info.outputs.path }}
+          name: deb-${{ matrix.arch }}
+          path: debs
+
+      - name: Install ll-builder
+        run: |
+          echo "deb [trusted=yes] https://ppa.linyaps.org.cn/release/Ubuntu_24.04/ ./" | \
+            sudo tee /etc/apt/sources.list.d/linglong.list
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends linglong-builder linglong-box
+          # Ubuntu 24.04 restringe los namespaces de usuario que usa ll-box
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+          ll-builder --version
+
+      - name: Set linyaps version from debian/changelog
+        run: |
+          IFS=. read -r a b c d <<< "${{ needs.check.outputs.version }}"
+          llver="${a:-0}.${b:-0}.${c:-0}.${d:-0}"
+          sed -i "s/^\(  version:\).*/\1 ${llver}/" linglong.yaml
+          grep -n "version:" linglong.yaml
+          ls -l debs/
+
+      - name: Cache linyaps base/runtime
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/linglong-builder
+          key: linglong-builder-${{ matrix.arch }}-${{ hashFiles('linglong.yaml') }}
+          restore-keys: linglong-builder-${{ matrix.arch }}-
+
+      - name: Build and export .uab
+        run: |
+          ll-builder build
+          LANG=C ll-builder export
+          ls -lh *.uab
+
+      - name: Upload .uab as artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: uab-${{ matrix.arch }}
+          path: '*.uab'
+          if-no-files-found: error
+
+  release:
+    needs: [check, build-deb, build-uab]
+    # Se publica aunque falle el .uab, siempre que los .deb esten bien
+    if: always() && needs.check.outputs.release == 'true' && needs.build-deb.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Download all .deb
+        uses: actions/download-artifact@v5
+        with:
+          pattern: deb-*
+          path: debs
+          merge-multiple: true
+
+      - name: Download all .uab
+        uses: actions/download-artifact@v5
+        continue-on-error: true
+        with:
+          pattern: uab-*
+          path: debs
+          merge-multiple: true
+
+      - name: Release notes from debian/changelog
+        run: |
+          # Primera entrada del changelog (sin cabecera ni firma)
+          awk 'NR==1{next} /^ -- /{exit} {print}' debian/changelog | sed 's/^  //' > notes.md
+          cat notes.md
+          ls -lh debs/
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v3.0.2
+        with:
+          tag_name: ${{ needs.check.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: ${{ github.event.repository.name }} ${{ needs.check.outputs.tag }}
+          body_path: notes.md
           generate_release_notes: true
+          files: debs/*
+          fail_on_unmatched_files: true

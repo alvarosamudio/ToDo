@@ -1,0 +1,28 @@
+version: "1"
+
+package:
+  id: org.deepinenespanol.todo
+  name: "ToDo"
+  version: 2.0.1.0
+  kind: app
+  description: |
+    Task list application of the Deepin en Español community.
+
+command:
+  - /opt/apps/org.deepinenespanol.todo/files/bin/ToDo
+
+base: org.deepin.base/25.2.2
+runtime: org.deepin.runtime.dtk/25.2.2
+
+# Se empaqueta el .deb ya compilado (el CI lo deja en debs/).
+# Se lee de /project/debs/ porque ll-builder vacia linglong/sources.
+build: |
+  dpkg-deb -X /project/debs/deepines-todo_*.deb $PREFIX/
+  mv $PREFIX/usr/bin $PREFIX/bin
+  mv $PREFIX/usr/share $PREFIX/share
+  rm -rf $PREFIX/usr
+  mv $PREFIX/share/applications/deepines-todo.desktop $PREFIX/share/applications/org.deepinenespanol.todo.desktop
+  sed -i 's#^Exec=.*#Exec=/opt/apps/org.deepinenespanol.todo/files/bin/ToDo#' \
+      $PREFIX/share/applications/org.deepinenespanol.todo.desktop
+
+sources: []

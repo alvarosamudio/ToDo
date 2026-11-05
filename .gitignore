@@ -44,3 +44,15 @@ debian/*.substvars
 debian/*.debhelper
 *.deb
 *.ddeb
+
+# debhelper / paquetes / linyaps
+obj-*/
+debian/.debhelper/
+debian/debhelper-build-stamp
+debian/files
+debian/*.substvars
+debian/deepines-todo/
+debs/
+linglong/
+*.uab
+*.layer

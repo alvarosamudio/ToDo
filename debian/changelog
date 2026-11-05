@@ -1,3 +1,14 @@
+deepines-todo (2.0.1-1) stable; urgency=medium
+
+  * CI: compilacion en Deepin crimson con las dependencias de
+    debian/control y release automatica con .deb (amd64, arm64, riscv64,
+    loong64) y .uab de linyaps (amd64, arm64).
+  * Elimina la dependencia libdtk6widget1, que no existe en Deepin 25 e
+    impedia instalar el paquete.
+  * Anade qt6-tools-dev a Build-Depends (LinguistTools).
+
+ -- Deepin Latin Code <alvarosamudio@protonmail.com>  Wed, 04 Nov 2026 20:00:00 +0000
+
 deepines-todo (2.0-1) stable; urgency=medium
 
   * Version 2.0 release.

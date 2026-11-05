@@ -6,14 +6,17 @@ Build-Depends: debhelper-compat (= 13),
                cmake,
                pkg-config,
                qt6-base-dev,
+               qt6-tools-dev,
+               qt6-tools-dev-tools,
                qt6-l10n-tools,
                libdtk6widget-dev
 Standards-Version: 4.6.2
-Homepage: https://deepinenespanol.org
+Homepage: https://github.com/alvarosamudio/ToDo
+Rules-Requires-Root: no
 
 Package: deepines-todo
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libdtk6widget1
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: App de tareas de la comunidad deepin en Español
  Simple and elegant todo list application for Deepin Desktop.
  Features:
